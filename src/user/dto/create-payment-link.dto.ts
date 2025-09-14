@@ -1,16 +1,9 @@
-// create-payment-link.dto.ts
-import { IsNumber, IsString } from 'class-validator';
-
+import { IsOptional, IsBoolean, IsNumber } from 'class-validator';
 export class CreatePaymentLinkDto {
+  @IsOptional()
   @IsNumber()
-  amount: number;
-
-  @IsString()
-  currency: string;
-
-  @IsString()
-  description: string;
-
-  @IsString()
-  redirectUrl: string;
+  amount?: number;
+  @IsOptional()
+  @IsBoolean()
+  openAmount?: boolean;
 }

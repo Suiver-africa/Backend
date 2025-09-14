@@ -1,100 +1,89 @@
-import { Controller, Post, Patch, Get, Body, Req, UseGuards } from '@nestjs/common';
-import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
-import { CreateBeneficiaryDto } from './dto/create-beneficiary.dto';
-import { KycDto } from './dto/kyc.dto';
-import { DepositDto, WithdrawDto, SendDto } from './dto/wallet.dto';
-import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { CreatePaymentLinkDto } from './dto/create-payment-link.dto';
+import {
+  Controller,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { UsersService } from './user.service';
+import {
+  UpdateUserDto,
+  UpdateKycDto,
+  UpdatePinDto,
+  UpdateBiometricDto,
+} from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@ApiTags('Users')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('users')
-export class UserController {
-  constructor(private userService: UserService) {}
+export class UsersController{
+  constructor(private readonly userService:UsersService) {}
 
-  /** ----------------- AUTH ----------------- */
-  @Post('signup')
-  signup(@Body() dto: CreateUserDto) {
-    return this.userService.signup(dto);
+  // ─── Profile ────────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Get current user profile' })
+  @Get('profile')
+  getProfile(@Request() req) {
+    return this.userService.findOne(req.user.id);
   }
 
-  @Post('login')
-  login(@Body() dto: LoginUserDto) {
-    return this.userService.login(dto);
+  @ApiOperation({ summary: 'Update user profile' })
+  @Patch('profile')
+  updateProfile(@Request() req, @Body() dto: UpdateUserDto) {
+    return this.userService.update(req.user.id, dto);
   }
 
-  /** ----------------- TAG ----------------- */
-  @UseGuards(JwtAuthGuard)
-  @Patch('tag')
-  setTag(@Req() req, @Body('tag') tag: string) {
-    return this.userService.setUserTag(req.user.id, tag);
+  @ApiOperation({ summary: 'Delete user account' })
+  @Delete('profile')
+  deleteAccount(@Request() req) {
+    return this.userService.delete(req.user.id);
   }
 
-  /** ----------------- KYC ----------------- */
-  @UseGuards(JwtAuthGuard)
-  @Post('kyc')
-  submitKyc(@Req() req, @Body() dto: KycDto) {
-    return this.userService.submitKyc(req.user.id, dto);
+  // ─── User Lookup ────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Get user by ID' })
+  @Get(':id')
+  findById(@Param('id') id: string) {
+    return this.userService.findOne(id);
   }
 
-  /** ----------------- WALLET ----------------- */
- @Post('deposit')
-deposit(@Req() req, @Body() dto: DepositDto) {
-  return this.userService.deposit(req.user.id, dto);
-}
-
-
-@UseGuards(JwtAuthGuard)
-@Post('withdraw')
-withdraw(@Req() req, @Body() dto: WithdrawDto) {
-  if (!dto.destinationAccount) throw new Error('destinationAccount is required');
-  return this.userService.withdraw(req.user.id, dto);
-}
-
-
-@UseGuards(JwtAuthGuard)
-@Post('send')
-sendMoney(@Req() req, @Body() dto: SendDto) {
-  return this.userService.sendMoney(req.user.id, dto);
-}
-
-
-
-  /** ----------------- TRANSACTIONS ----------------- */
-  @UseGuards(JwtAuthGuard)
-  @Post('transaction')
-  createTransaction(@Req() req, @Body() dto: CreateTransactionDto) {
-    return this.userService.createTransaction(req.user.id, dto);
+  @ApiOperation({ summary: 'Find user by tag' })
+  @Get('tag/:tag')
+  findByTag(@Param('tag') tag: string) {
+    return this.userService.findByTag(tag);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('transactions')
-  listTransactions(@Req() req) {
-    return this.userService.listTransactions(req.user.id);
+  // ─── KYC / Security ────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Update KYC status' })
+  @Patch('kyc')
+  updateKyc(@Request() req, @Body() dto: UpdateKycDto) {
+    return this.userService.updateKyc(req.user.id, dto);
   }
 
-  /** ----------------- PAYMENT LINKS ----------------- */
-  @UseGuards(JwtAuthGuard)
-  @Post('payment-link')
-  createPaymentLink(@Req() req, @Body() dto: CreatePaymentLinkDto) {
-    return this.userService.createPaymentLink(req.user.id, dto);
-  }
-}
-
-@Controller('beneficiaries')
-export class BeneficiaryController {
-  constructor(private userService: UserService) {}
-
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  add(@Req() req, @Body() dto: CreateBeneficiaryDto) {
-    return this.userService.addBeneficiary(req.user.id, dto);
+  @ApiOperation({ summary: 'Update PIN' })
+  @Patch('pin')
+  updatePin(@Request() req, @Body() dto: UpdatePinDto) {
+    return this.userService.updatePin(req.user.id, dto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  list(@Req() req) {
-    return this.userService.listBeneficiaries(req.user.id);
+  @ApiOperation({ summary: 'Update biometric setting' })
+  @Patch('biometric')
+  updateBiometric(@Request() req, @Body() dto: UpdateBiometricDto) {
+    return this.userService.updateBiometric(req.user.id, dto);
+  }
+
+  // ─── Referrals ─────────────────────────────────────────────
+
+  @ApiOperation({ summary: 'Get user referrals' })
+  @Get('referrals/list')
+  getReferrals(@Request() req) {
+    return this.userService.getReferrals(req.user.id);
   }
 }
