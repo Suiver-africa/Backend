@@ -6,8 +6,8 @@ import { WalletsModule } from './wallets/wallets.module';
 import { TransactionsModule } from './transactions/transactons.module';
 import { BeneficiariesModule } from './beneficiaries/beneficiaries.module';
 import { PaymentLinksModule  } from './payment-links/payment-links.module';
-// import { ReferralModule } from './referral/referral.module';
-// import { UserSecurityModule } from './user-security/user-security.module';
+import { ReferralModule } from './referral/referral.module';
+import { UserSecurityModule } from './user-security/user-security.module';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
@@ -22,7 +22,8 @@ import { AuthModule } from './auth/auth.module';
     TransactionsModule,
     BeneficiariesModule,
      PaymentLinksModule ,
-    
+    ReferralModule,
+    UserSecurityModule,
   ],
 })
 export class AppModule {}
