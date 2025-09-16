@@ -8,51 +8,55 @@ datasource db {
 }
 
 model User {
-  id             String        @id @default(uuid())
-  email          String        @unique
-  firstName      String?
-  lastName       String?
-  password       String
-  phone          String?
-  tag            String?       @unique
-  referralCode   String?       @unique
-  referredById   String?
-  referredBy     User?         @relation("Referrals", fields: [referredById], references: [id])
-  referrals      User[]        @relation("Referrals")
-  wallet         Wallet?
-  security       UserSecurity?
-  beneficiaries  Beneficiary[]
-  paymentLinks   PaymentLink[]
-  transactions   Transaction[]  @relation("UserTransactions")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id               String  @id @default(uuid())
+  email            String  @unique
+  firstName        String?
+  lastName         String?
+  password         String
+  phone            String?
+  tag              String? @unique
+  referralCode     String? @unique
+  referredById     String?
+  referredBy       User?   @relation("Referrals", fields: [referredById], references: [id])
+  referrals        User[]  @relation("Referrals")
+  wallet           Wallet?
+  kycStatus        String? @default("NOT_SUBMITTED")
+  biometricEnabled Boolean @default(false)
+ documentType  String?
+  security      UserSecurity?
+  beneficiaries Beneficiary[]
+  paymentLinks  PaymentLink[]
+  transactions  Transaction[] @relation("UserTransactions")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model Wallet {
-  id          Int       @id @default(autoincrement())
-  userId      String    @unique
-  user        User      @relation(fields: [userId], references: [id])
-  balance     BigInt    @default(0)
-  currency    String    @default("NGN")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   BigInt   @default(0)
+  currency  String   @default("NGN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
 
   sentTransactions     Transaction[] @relation("SentTransactions")
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
 }
 
 model Referral {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  inviterId   String
-  inviteeId   String?
-  reward      BigInt   @default(0)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  code      String   @unique
+  inviterId String
+  inviteeId String?
+  reward    BigInt   @default(0)
+  createdAt DateTime @default(now())
 }
 
 model UserSecurity {
   id        String   @id @default(uuid())
   userId    String   @unique
+  pin       String?
   user      User     @relation(fields: [userId], references: [id])
   pinHash   String
   twoFA     Boolean  @default(false)
@@ -62,22 +66,22 @@ model UserSecurity {
 }
 
 model Transaction {
-  id           Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  fromWallet   Wallet    @relation("SentTransactions", fields: [fromWalletId], references: [id])
+  fromWallet   Wallet @relation("SentTransactions", fields: [fromWalletId], references: [id])
   fromWalletId Int
-  toWallet     Wallet    @relation("ReceivedTransactions", fields: [toWalletId], references: [id])
+  toWallet     Wallet @relation("ReceivedTransactions", fields: [toWalletId], references: [id])
   toWalletId   Int
 
-  userId       String
-  user         User      @relation("UserTransactions", fields: [userId], references: [id])
+  userId String
+  user   User   @relation("UserTransactions", fields: [userId], references: [id])
 
-  type         TransactionType
-  amount       BigInt
-  description  String?
-  currency     String
-  status       String    @default("PENDING")
-  createdAt    DateTime  @default(now())
+  type        TransactionType
+  amount      BigInt
+  description String?
+  currency    String
+  status      String          @default("PENDING")
+  createdAt   DateTime        @default(now())
 }
 
 model Beneficiary {
@@ -92,13 +96,13 @@ model Beneficiary {
 }
 
 model PaymentLink {
-  id          Int       @id @default(autoincrement())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      String
-  amount      BigInt?
-  openAmount  Boolean   @default(false)
-  code        String    @unique
-  createdAt   DateTime  @default(now())
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  amount     BigInt?
+  openAmount Boolean  @default(false)
+  code       String   @unique
+  createdAt  DateTime @default(now())
 }
 
 enum TransactionType {

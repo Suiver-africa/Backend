@@ -6,14 +6,18 @@ import * as bcrypt from 'bcrypt';
 export class UserSecurityService {
   constructor(private prisma: PrismaService) {}
 
-  async setPin(userId: string, pin: string) {
-    const hashed = await bcrypt.hash(pin, 10);
-    return this.prisma.userSecurity.upsert({
-      where: { userId },
-      update: { pinHash: hashed },
-      create: { userId, pinHash: hashed },
-    });
-  }
+async setPin(userId: string, pin: string) {
+  const hashedPin = await bcrypt.hash(pin, 10);
+
+  const res = await this.prisma.userSecurity.upsert({
+    where: { userId },
+    update: { pinHash: hashedPin },
+    create: { userId, pinHash: hashedPin },
+  });
+
+  // return minimal info
+  return { success: true };
+}
 
   async verifyPin(userId: string, pin: string) {
     const sec = await this.prisma.userSecurity.findUnique({ where: { userId } });

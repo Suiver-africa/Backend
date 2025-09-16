@@ -77,7 +77,8 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        wallets: true,
+        wallet: true,
+       security: true,
         referrals: true,
         referredBy: {
           select: { id: true, firstName: true, lastName: true, email: true },
@@ -134,14 +135,14 @@ export class UsersService {
     });
   }
 
-  async updatePin(id: string, dto: UpdatePinDto) {
-    const hashedPin = await bcrypt.hash(dto.pin, 10);
-    return this.prisma.user.update({
-      where: { id },
-      data: { pin: hashedPin },
-      select: { id: true },
-    });
-  }
+async setPin(userId: string, hashedPin: string) {
+  const updated = await this.prisma.userSecurity.update({
+    where: { userId },
+    data: { pin: hashedPin },
+    select: { id: true, pin: true },
+  });
+  return updated;
+}
 
   async updateBiometric(id: string, dto: UpdateBiometricDto) {
     return this.prisma.user.update({
@@ -166,13 +167,17 @@ export class UsersService {
     });
   }
 
-  async submitKyc(userId: string, dto: KycDto) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { kycStatus: 'PENDING' },
-      select: { id: true, kycStatus: true },
-    });
-  }
+ async submitKyc(userId: string, dto: KycDto) {
+  
+  const updated = await this.prisma.user.update({
+    where: { id: userId },
+    data: { kycStatus: dto.kycStatus || 'PENDING',
+      documentType: dto.documentType || null,
+     },
+    select: { id: true, kycStatus: true },
+  });
+  return updated;
+}
 
   async getReferrals(id: string) {
     return this.prisma.user.findMany({
