@@ -145,20 +145,14 @@ export class UsersService {
 
   async updatePin(id: string, dto: UpdatePinDto) {
     const hashedPin = await bcrypt.hash(dto.pin, 10);
-<<<<<<< Updated upstream
-    return this.prisma.user.update({
-      where: { id },
-      data: { pin: hashedPin },
-      select: { id: true },
-    });
-=======
+
     const res = await this.prisma.userSecurity.upsert({
       where: { userId: id },
       update: { pinHash: hashedPin },
       create: { userId: id, pinHash: hashedPin },
     });
     return { success: true };
->>>>>>> Stashed changes
+
   }
 
   async updateBiometric(id: string, dto: UpdateBiometricDto) {
