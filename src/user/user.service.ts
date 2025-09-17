@@ -46,11 +46,20 @@ export class UsersService {
 
       const user = await this.prisma.user.create({ data });
 
-      // create wallet
-      await this.prisma.wallet.create({
-        data: { userId: user.id, balance: BigInt(0), currency: 'NGN' },
-      });
-
+      // create wallets for multiple currencies (NGN + common cryptos)
+      const currencies = ['NGN','BTC','ETH','BNB','LTC','SUI','SOL','USDT'];
+      for (const cur of currencies) {
+        await this.prisma.wallet.create({
+          data: { userId: user.id, balance: BigInt(0), currency: cur },
+        });
+        // create a deposit address for crypto currencies (not for NGN)
+        if (cur !== 'NGN') {
+          const addr = `suiver_${cur.toLowerCase()}_${uuidv4().split('-')[0]}`;
+          await this.prisma.cryptoAddress.create({
+            data: { userId: user.id, currency: cur, address: addr },
+          });
+        }
+      }
       const token = this.jwtService.sign({ sub: user.id });
       return { user, token };
     } catch (e: any) {
@@ -136,11 +145,20 @@ export class UsersService {
 
   async updatePin(id: string, dto: UpdatePinDto) {
     const hashedPin = await bcrypt.hash(dto.pin, 10);
+<<<<<<< Updated upstream
     return this.prisma.user.update({
       where: { id },
       data: { pin: hashedPin },
       select: { id: true },
     });
+=======
+    const res = await this.prisma.userSecurity.upsert({
+      where: { userId: id },
+      update: { pinHash: hashedPin },
+      create: { userId: id, pinHash: hashedPin },
+    });
+    return { success: true };
+>>>>>>> Stashed changes
   }
 
   async updateBiometric(id: string, dto: UpdateBiometricDto) {

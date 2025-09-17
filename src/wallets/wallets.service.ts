@@ -11,9 +11,14 @@ export class WalletService {
   constructor(private prisma: PrismaService) {}
 
   // ─── Get Wallet ────────────────────────────────
-  async findByUserId(userId: string) {
+  async findByUserId(userId: string, currency: string = 'NGN') {
     const wallet = await this.prisma.wallet.findUnique({
-      where: { userId },
+      where: { 
+        userId_currency: { 
+          userId, 
+          currency 
+        } 
+      },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
@@ -24,9 +29,14 @@ export class WalletService {
     return { ...wallet, balance: Number(wallet.balance) };
   }
 
-  async getBalance(userId: string) {
+  async getBalance(userId: string, currency: string = 'NGN') {
     const wallet = await this.prisma.wallet.findUnique({
-      where: { userId },
+      where: { 
+        userId_currency: { 
+          userId, 
+          currency 
+        } 
+      },
       select: { balance: true, currency: true },
     });
 
@@ -35,14 +45,46 @@ export class WalletService {
     return { balance: Number(wallet.balance), currency: wallet.currency };
   }
 
+  // Alternative: Get all wallets for a user
+  async findAllByUserId(userId: string) {
+    const wallets = await this.prisma.wallet.findMany({
+      where: { userId },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    if (!wallets || wallets.length === 0) {
+      throw new NotFoundException('No wallets found for user');
+    }
+
+    return wallets.map(wallet => ({ ...wallet, balance: Number(wallet.balance) }));
+  }
+
   // ─── Deposit ──────────────────────────────────
   async deposit(userId: string, dto: DepositDto) {
-    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
+    // Assume currency is provided in dto, or default to NGN
+    const currency = dto.currency || 'NGN';
+    
+    const wallet = await this.prisma.wallet.findUnique({ 
+      where: { 
+        userId_currency: { 
+          userId, 
+          currency 
+        } 
+      } 
+    });
+    
     if (!wallet) throw new NotFoundException('Wallet not found');
 
     const result = await this.prisma.$transaction(async (tx) => {
       const updatedWallet = await tx.wallet.update({
-        where: { userId },
+        where: { 
+          userId_currency: { 
+            userId, 
+            currency 
+          } 
+        },
         data: { balance: { increment: BigInt(dto.amount) } },
       });
 
@@ -67,7 +109,17 @@ export class WalletService {
 
   // ─── Withdraw ────────────────────────────────
   async withdraw(userId: string, dto: WithdrawDto) {
-    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
+    const currency = dto.currency || 'NGN';
+    
+    const wallet = await this.prisma.wallet.findUnique({ 
+      where: { 
+        userId_currency: { 
+          userId, 
+          currency 
+        } 
+      } 
+    });
+    
     if (!wallet) throw new NotFoundException('Wallet not found');
 
     const amount = BigInt(dto.amount);
@@ -75,7 +127,12 @@ export class WalletService {
 
     const result = await this.prisma.$transaction(async (tx) => {
       const updatedWallet = await tx.wallet.update({
-        where: { userId },
+        where: { 
+          userId_currency: { 
+            userId, 
+            currency 
+          } 
+        },
         data: { balance: { decrement: amount } },
       });
 
@@ -104,8 +161,23 @@ export class WalletService {
       throw new BadRequestException('Cannot send money to yourself');
     }
 
-    const senderWallet = await this.prisma.wallet.findUnique({ where: { userId } });
-    const recipientWallet = await this.prisma.wallet.findUnique({ where: { userId: dto.recipientId } });
+    const senderWallet = await this.prisma.wallet.findUnique({ 
+      where: { 
+        userId_currency: { 
+          userId, 
+          currency: dto.currency 
+        } 
+      } 
+    });
+    
+    const recipientWallet = await this.prisma.wallet.findUnique({ 
+      where: { 
+        userId_currency: { 
+          userId: dto.recipientId, 
+          currency: dto.currency 
+        } 
+      } 
+    });
 
     if (!senderWallet) throw new NotFoundException('Sender wallet not found');
     if (!recipientWallet) throw new NotFoundException('Recipient wallet not found');
@@ -115,12 +187,22 @@ export class WalletService {
 
     const result = await this.prisma.$transaction(async (tx) => {
       const updatedSender = await tx.wallet.update({
-        where: { userId },
+        where: { 
+          userId_currency: { 
+            userId, 
+            currency: dto.currency 
+          } 
+        },
         data: { balance: { decrement: amount } },
       });
 
       await tx.wallet.update({
-        where: { userId: dto.recipientId },
+        where: { 
+          userId_currency: { 
+            userId: dto.recipientId, 
+            currency: dto.currency 
+          } 
+        },
         data: { balance: { increment: amount } },
       });
 
@@ -144,9 +226,14 @@ export class WalletService {
   }
 
   // ─── Update Wallet ───────────────────────────
-  async update(userId: string, dto: UpdateDto) {
+  async update(userId: string, currency: string, dto: UpdateDto) {
     const wallet = await this.prisma.wallet.update({
-      where: { userId },
+      where: { 
+        userId_currency: { 
+          userId, 
+          currency 
+        } 
+      },
       data: dto,
     });
 
@@ -154,14 +241,42 @@ export class WalletService {
   }
 
   // ─── Transaction History ─────────────────────
-  async getTransactionHistory(userId: string) {
-    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
-    if (!wallet) throw new NotFoundException('Wallet not found');
+  async getTransactionHistory(userId: string, currency?: string) {
+    let walletCondition;
+    
+    if (currency) {
+      // Get transactions for a specific currency wallet
+      const wallet = await this.prisma.wallet.findUnique({ 
+        where: { 
+          userId_currency: { 
+            userId, 
+            currency 
+          } 
+        } 
+      });
+      if (!wallet) throw new NotFoundException('Wallet not found');
+      
+      walletCondition = {
+        OR: [{ fromWalletId: wallet.id }, { toWalletId: wallet.id }],
+      };
+    } else {
+      // Get transactions for all user's wallets
+      const wallets = await this.prisma.wallet.findMany({ where: { userId } });
+      if (!wallets || wallets.length === 0) {
+        throw new NotFoundException('No wallets found for user');
+      }
+      
+      const walletIds = wallets.map(w => w.id);
+      walletCondition = {
+        OR: [
+          { fromWalletId: { in: walletIds } }, 
+          { toWalletId: { in: walletIds } }
+        ],
+      };
+    }
 
     const transactions = await this.prisma.transaction.findMany({
-      where: {
-        OR: [{ fromWalletId: wallet.id }, { toWalletId: wallet.id }],
-      },
+      where: walletCondition,
       orderBy: { createdAt: 'desc' },
       include: {
         fromWallet: {
@@ -174,5 +289,34 @@ export class WalletService {
     });
 
     return transactions.map((tx) => ({ ...tx, amount: Number(tx.amount) }));
+  }
+
+  // ─── Create Wallet for User ──────────────────
+  async createWallet(userId: string, currency: string = 'NGN') {
+    const existingWallet = await this.prisma.wallet.findUnique({
+      where: { 
+        userId_currency: { 
+          userId, 
+          currency 
+        } 
+      }
+    });
+
+    if (existingWallet) {
+      throw new BadRequestException(`Wallet for ${currency} already exists`);
+    }
+
+    const wallet = await this.prisma.wallet.create({
+      data: {
+        userId,
+        currency,
+        balance: BigInt(0),
+      },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    return { ...wallet, balance: Number(wallet.balance) };
   }
 }

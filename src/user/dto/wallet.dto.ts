@@ -13,6 +13,11 @@ export class DepositDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiProperty({ required: false, default: 'NGN' })
+  @IsOptional()
+  @IsString()
+  currency?: string;
 }
 
 export class WithdrawDto {
@@ -21,7 +26,7 @@ export class WithdrawDto {
   @Min(1)
   amount: number;
 
-  @ApiProperty()
+  @ApiProperty({ default: 'NGN' })
   @IsString()
   currency: string;
 
@@ -37,7 +42,7 @@ export class SendDto {
   @Min(1)
   amount: number;
 
-  @ApiProperty()
+  @ApiProperty({ default: 'NGN' })
   @IsString()
   currency: string;
 
