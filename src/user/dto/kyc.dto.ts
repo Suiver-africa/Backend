@@ -1,12 +1,3 @@
-<<<<<<< Updated upstream
-import { IsNotEmpty } from 'class-validator';
-export class KycDto {
-  @IsNotEmpty()
-  idType: string;
-  @IsNotEmpty()
-  documentUrl: string;
-}
-=======
 import { IsOptional, IsString } from 'class-validator';
 
 export class KycDto {
@@ -26,4 +17,3 @@ export class KycDto {
   @IsString()
   documentUrl?: string;
 }
->>>>>>> Stashed changes

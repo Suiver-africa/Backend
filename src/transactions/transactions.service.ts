@@ -6,34 +6,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class TransactionsService {
   constructor(private prisma: PrismaService) {}
 
-<<<<<<< Updated upstream
-  async deposit(userId: string, amount: number) {
-    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
-    if (!wallet) throw new NotFoundException('Wallet not found');
-    const updated = await this.prisma.wallet.update({
-      where: { id: wallet.id },
-      data: { balance: wallet.balance + BigInt(Math.floor(amount)) },
-    });
-    await this.prisma.transaction.create({
-      data: {
-        userId,
-        type: 'DEPOSIT',
-        amount: BigInt(Math.floor(amount)),
-        description: 'Deposit',
-        currency: updated.currency,
-        status: 'PENDING',
-        fromWalletId: updated.id,
-        toWalletId: updated.id,
-      },
-    });
-    return updated;
-  }
-
-  async send(userId: string, recipientTag: string, amount: number) {
-    const senderWallet = await this.prisma.wallet.findUnique({ where: { userId } });
-    if (!senderWallet) throw new NotFoundException('Sender wallet not found');
-    if (senderWallet.balance < BigInt(Math.floor(amount))) throw new BadRequestException('Insufficient balance');
-=======
   private async getWallet(userId: string, currency = 'NGN') {
     const wallet = await this.prisma.wallet.findFirst({ where: { userId, currency } });
     if (!wallet) throw new NotFoundException('Wallet not found for currency ' + currency);
@@ -103,7 +75,6 @@ export class TransactionsService {
       if (used + parsed > limit) throw new BadRequestException('Daily limit exceeded');
     }
 
->>>>>>> Stashed changes
     const recipient = await this.prisma.user.findUnique({ where: { tag: recipientTag } });
     if (!recipient) throw new NotFoundException('Recipient not found');
     const recipientWallet = await this.getWallet(recipient.id, currency);
@@ -146,17 +117,6 @@ export class TransactionsService {
     return { success: true };
   }
 
-<<<<<<< Updated upstream
-  async withdraw(userId: string, amount: number, destinationAccount: string) {
-    const wallet = await this.prisma.wallet.findUnique({ where: { userId } });
-    if (!wallet) throw new NotFoundException('Wallet not found');
-    if (wallet.balance < BigInt(Math.floor(amount))) throw new BadRequestException('Insufficient balance');
-
-    await this.prisma.wallet.update({
-      where: { id: wallet.id },
-      data: { balance: wallet.balance - BigInt(Math.floor(amount)) },
-    });
-=======
   async withdraw(userId: string, amount: number, destinationAccount: string, currency = 'NGN') {
     const parsed = BigInt(Math.floor(amount));
     const wallet = await this.getWallet(userId, currency);
@@ -170,7 +130,6 @@ export class TransactionsService {
     }
 
     const newBal = wallet.balance - parsed;
->>>>>>> Stashed changes
 
     await this.prisma.transaction.create({
       data: {

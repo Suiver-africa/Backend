@@ -8,77 +8,6 @@ datasource db {
 }
 
 model User {
-<<<<<<< Updated upstream
-  id               String        @id @default(uuid())
-  email            String        @unique
-  password         String
-  phone            String?
-  tag              String?       @unique
-  firstName        String?
-  lastName         String?
-  kycStatus        String?       @default("NOT_SUBMITTED")
-  referralCode     String        @unique @default(uuid())
-  referredById     String?
-  pin              String?
-  biometricEnabled Boolean       @default(false)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  beneficiaries    Beneficiary[]
-  paymentLinks     PaymentLink[]
-  transactions     Transaction[] @relation("UserTransactions")
-  referredBy       User?         @relation("Referrals", fields: [referredById], references: [id])
-  referrals        User[]        @relation("Referrals")
-  wallets          Wallet?
-}
-
-model Wallet {
-  id                   Int           @id @default(autoincrement())
-  userId               String        @unique
-  balance              BigInt        @default(0)
-  currency             String        @default("NGN")
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  sentTransactions     Transaction[] @relation("SentTransactions")
-  receivedTransactions Transaction[] @relation("ReceivedTransactions")
-  user                 User          @relation(fields: [userId], references: [id])
-}
-
-model Transaction {
-  id           Int             @id @default(autoincrement())
-  userId       String
-  fromWalletId Int
-  toWalletId   Int
-  type         TransactionType
-  amount       BigInt
-  currency     String
-  description  String?
-  status       String          @default("PENDING")
-  createdAt    DateTime        @default(now())
-  fromWallet   Wallet          @relation("SentTransactions", fields: [fromWalletId], references: [id])
-  toWallet     Wallet          @relation("ReceivedTransactions", fields: [toWalletId], references: [id])
-  user         User            @relation("UserTransactions", fields: [userId], references: [id])
-}
-
-model Beneficiary {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  tag       String
-  accountNo String?
-  bankName  String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-model PaymentLink {
-  id         Int      @id @default(autoincrement())
-  userId     String
-  amount     BigInt?
-  openAmount Boolean  @default(false)
-  code       String   @unique
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
-=======
   id               String   @id @default(uuid())
   email            String   @unique
   password         String
@@ -159,7 +88,6 @@ model Transaction {
   currency    String
   status      String          @default("PENDING")
   createdAt   DateTime        @default(now())
->>>>>>> Stashed changes
 }
 
 model Referral {
