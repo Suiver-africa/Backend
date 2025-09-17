@@ -102,16 +102,10 @@ model Referral {
 model UserSecurity {
   id        String   @id @default(uuid())
   userId    String   @unique
-<<<<<<< Updated upstream
-  pinHash   String
-=======
   user      User     @relation(fields: [userId], references: [id])
   pinHash   String?
->>>>>>> Stashed changes
   twoFA     Boolean  @default(false)
   createdAt DateTime @default(now())
-<<<<<<< Updated upstream
-=======
   updatedAt DateTime @default(now())
 }
 
@@ -134,7 +128,6 @@ model PaymentLink {
   openAmount Boolean  @default(false)
   code       String   @unique
   createdAt  DateTime @default(now())
->>>>>>> Stashed changes
 }
 
 enum TransactionType {
