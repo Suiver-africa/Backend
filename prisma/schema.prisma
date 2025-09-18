@@ -130,6 +130,21 @@ model PaymentLink {
   createdAt  DateTime @default(now())
 }
 
+model Otp {
+  id        String   @id @default(cuid())
+  email     String
+  type      String   // SIGNUP, LOGIN, RESET_PASSWORD
+  code      String
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, type], name: "email_type")
+  @@index([expiresAt])
+  @@map("otps")
+}
+
 enum TransactionType {
   DEPOSIT
   WITHDRAW
