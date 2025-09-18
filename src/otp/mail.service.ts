@@ -10,7 +10,7 @@ export class MailService {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('SMTP_HOST'),
       port: this.configService.get<number>('SMTP_PORT'),
-      secure: false, // STARTTLS (true if you use port 465)
+      secure: true, // true if using port 465
       auth: {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
@@ -18,7 +18,12 @@ export class MailService {
     });
   }
 
-  async sendMail({ to, subject, html }: { to: string; subject: string; html: string }) {
+ async sendMail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  console.log('Sending email with the following details:');
+  console.log('To:', to);
+  console.log('Subject:', subject);
+  console.log('HTML:', html);
+
   return this.transporter.sendMail({
     from: this.configService.get('SMTP_USER'),
     to,

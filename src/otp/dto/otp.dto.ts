@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsEnum, IsOptional, Length } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, Length } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum OtpType {
@@ -34,21 +34,6 @@ export class VerifyOtpDto {
   type?: OtpType = OtpType.SIGNUP;
 }
 
-export class SendOtpResponseDto {
-  @ApiProperty()
-  success: boolean;
-
-  @ApiProperty()
-  message: string;
-
-  @ApiProperty()
-  expiresAt: Date;
-}
-
-export class VerifyOtpResponseDto {
-  @ApiProperty()
-  success: boolean;
-
-  @ApiProperty()
-  message: string;
+export class ResendOtpDto {
+  email: string;
 }

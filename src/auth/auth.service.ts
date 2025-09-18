@@ -183,16 +183,15 @@ export class AuthService {
     }
   }
 
-  async resendSignupOtp(email: string) {
-    // Check if there's a pending signup
-    const pendingSignup = this.pendingSignups.get(email);
-    if (!pendingSignup) {
-      throw new BadRequestException('No pending signup found for this email');
-    }
-
-    // Send new OTP
-    return this.otpService.sendOtp(email, 'SIGNUP');
+ async resendSignupOtp(email: string) {
+  const pendingSignup = this.pendingSignups.get(email);
+  if (!pendingSignup) {
+    throw new BadRequestException('No pending signup found for this email');
   }
+
+  return this.otpService.sendOtp(email, 'SIGNUP');
+}
+
 
   // ─── Traditional Authentication ────────────────────────────────
 
