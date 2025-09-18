@@ -13,5 +13,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  suiver-backend:
+    build: .
+    container_name: suiver-backend
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://suiver:suiver040@postgres:5432/suiver
+    depends_on:
+      - postgres
+    command: npm run start:dev
+
 volumes:
   postgres_data:

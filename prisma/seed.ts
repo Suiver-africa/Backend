@@ -1,13 +1,15 @@
 import { PrismaClient, TransactionType } from '@prisma/client'
+
 const prisma = new PrismaClient()
 
 async function main() {
   // Cleanup for idempotent seeding (dev only)
-  await prisma.transaction.deleteMany().catch(()=>{})
-  await prisma.wallet.deleteMany().catch(()=>{})
-  await prisma.beneficiary.deleteMany().catch(()=>{})
-  await prisma.paymentLink.deleteMany().catch(()=>{})
-  await prisma.user.deleteMany().catch(()=>{})
+  await prisma.otp.deleteMany().catch(() => {})
+  await prisma.transaction.deleteMany().catch(() => {})
+  await prisma.wallet.deleteMany().catch(() => {})
+  await prisma.beneficiary.deleteMany().catch(() => {})
+  await prisma.paymentLink.deleteMany().catch(() => {})
+  await prisma.user.deleteMany().catch(() => {})
 
   const alice = await prisma.user.create({
     data: {
@@ -67,7 +69,36 @@ async function main() {
     ]
   })
 
-  console.log("Seed complete")
+  // 🔐 Add OTP seeds for testing
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000) // 10 min expiry
+
+  await prisma.otp.createMany({
+    data: [
+      {
+        email: "alice@suiver.app",
+        type: "SIGNUP",
+        code: "123456",
+        expiresAt,
+        attempts: 0,
+        verified: false,
+        createdAt: now,
+       
+      },
+      {
+        email: "bob@suiver.app",
+        type: "LOGIN",
+        code: "654321",
+        expiresAt,
+        attempts: 1,
+        verified: false,
+        createdAt: now,
+        
+      }
+    ]
+  })
+
+  console.log("✅ Seed complete: users, wallets, transactions, otps")
 }
 
 main()

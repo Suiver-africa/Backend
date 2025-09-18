@@ -8,43 +8,41 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  email            String   @unique
+  id               String          @id @default(uuid())
+  email            String          @unique
   password         String
+  phone            String?
+  tag              String?         @unique
   firstName        String?
   lastName         String?
-  phone            String?
-  tag              String?  @unique
-  referralCode     String?  @unique
+  kycStatus        String?         @default("NOT_SUBMITTED")
+  referralCode     String?         @unique
   referredById     String?
-  referredBy       User?    @relation("Referrals", fields: [referredById], references: [id])
-  referrals        User[]   @relation("Referrals")
-  kycStatus        String?  @default("NOT_SUBMITTED")
+  biometricEnabled Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   socType          String?
-  biometricEnabled Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  wallets       Wallet[]
-  transactions  Transaction[]   @relation("UserTransactions")
-  beneficiaries Beneficiary[]
-  paymentLinks  PaymentLink[]
-  security      UserSecurity?
-  CryptoAddress CryptoAddress[]
-  CryptoDeposit CryptoDeposit[]
+  beneficiaries    Beneficiary[]
+  cryptoAddress    CryptoAddress[]
+  cryptoDeposit    CryptoDeposit[]
+  paymentLinks     PaymentLink[]
+  transactions     Transaction[]   @relation("UserTransactions")
+  referredBy       User?           @relation("Referrals", fields: [referredById], references: [id])
+  referrals        User[]          @relation("Referrals")
+  security         UserSecurity?
+  wallets          Wallet[]
 }
 
 model Wallet {
-  id        Int      @id @default(autoincrement())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  balance   BigInt   @default(0)
-  currency  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-
+  id                   Int           @id @default(autoincrement())
+  userId               String
+  balance              BigInt        @default(0)
+  currency             String
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @default(now()) @updatedAt
   sentTransactions     Transaction[] @relation("SentTransactions")
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
+  user                 User          @relation(fields: [userId], references: [id])
 
   @@unique([userId, currency])
 }
@@ -52,16 +50,15 @@ model Wallet {
 model CryptoAddress {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   currency  String
   address   String   @unique
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model CryptoDeposit {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   txHash    String   @unique
   address   String
   currency  String
@@ -70,24 +67,23 @@ model CryptoDeposit {
   fee       BigInt
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Transaction {
-  id     Int    @id @default(autoincrement())
-  userId String
-  user   User   @relation("UserTransactions", fields: [userId], references: [id])
-
-  fromWallet   Wallet @relation("SentTransactions", fields: [fromWalletId], references: [id])
+  id           Int             @id @default(autoincrement())
+  userId       String
   fromWalletId Int
-  toWallet     Wallet @relation("ReceivedTransactions", fields: [toWalletId], references: [id])
   toWalletId   Int
-
-  type        TransactionType
-  amount      BigInt
-  description String?
-  currency    String
-  status      String          @default("PENDING")
-  createdAt   DateTime        @default(now())
+  type         TransactionType
+  amount       BigInt
+  currency     String
+  description  String?
+  status       String          @default("PENDING")
+  createdAt    DateTime        @default(now())
+  fromWallet   Wallet          @relation("SentTransactions", fields: [fromWalletId], references: [id])
+  toWallet     Wallet          @relation("ReceivedTransactions", fields: [toWalletId], references: [id])
+  user         User            @relation("UserTransactions", fields: [userId], references: [id])
 }
 
 model Referral {
@@ -102,33 +98,51 @@ model Referral {
 model UserSecurity {
   id        String   @id @default(uuid())
   userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
   pinHash   String?
   twoFA     Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  biometric String?
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Beneficiary {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   name      String
   tag       String
   accountNo String?
   bankName  String?
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Otp {
+  id        String   @id @default(cuid())
+  email     String
+  type      String
+  code      String
+  verified  Boolean  @default(false)
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, type], name: "email_type")
+  @@index([expiresAt])
+  @@map("otps")
 }
 
 model PaymentLink {
   id         Int      @id @default(autoincrement())
   userId     String
-  user       User     @relation(fields: [userId], references: [id])
   amount     BigInt?
   openAmount Boolean  @default(false)
   code       String   @unique
   createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
 }
+
+
 
 enum TransactionType {
   DEPOSIT
