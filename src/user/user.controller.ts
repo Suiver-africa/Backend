@@ -32,6 +32,7 @@ import {
   AuthResponseDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {JwtRefreshStrategy } from '../auth/jwt-refresh.guard';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -44,11 +45,7 @@ export class AuthController {
   // ─── OTP Management ────────────────────────────────────────────
 
   @ApiOperation({ summary: 'Send OTP to email' })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP sent successfully',
-    type: SendOtpResponseDto,
-  })
+  @ApiResponse({ status: 200, type: SendOtpResponseDto })
   @ApiResponse({ status: 400, description: 'Email already exists or invalid request' })
   @HttpCode(HttpStatus.OK)
   @Post('send-otp')
@@ -57,11 +54,7 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Verify OTP code' })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP verified successfully',
-    type: VerifyOtpResponseDto,
-  })
+  @ApiResponse({ status: 200, type: VerifyOtpResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid OTP or OTP expired' })
   @HttpCode(HttpStatus.OK)
   @Post('verify-otp')
@@ -70,11 +63,7 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Resend OTP for signup verification' })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP resent successfully',
-    type: SendOtpResponseDto,
-  })
+  @ApiResponse({ status: 200, type: SendOtpResponseDto })
   @ApiResponse({ status: 400, description: 'No pending signup found or rate limited' })
   @HttpCode(HttpStatus.OK)
   @Post('resend-otp')
@@ -84,32 +73,16 @@ export class AuthController {
 
   // ─── Two-Step Registration ─────────────────────────────────────
 
-  @ApiOperation({ 
-    summary: 'Initiate signup process', 
-    description: 'Store user data temporarily and send OTP for verification' 
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Signup initiated, OTP sent to email',
-    type: InitialSignupResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Email already exists' })
+  @ApiOperation({ summary: 'Initiate signup process' })
+  @ApiResponse({ status: 200, type: InitialSignupResponseDto })
   @HttpCode(HttpStatus.OK)
   @Post('signup/init')
   initiateSignup(@Body() dto: InitialSignupDto) {
     return this.authService.initiateSignup(dto);
   }
 
-  @ApiOperation({ 
-    summary: 'Complete signup process', 
-    description: 'Verify OTP and create user account' 
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'User created successfully',
-    type: CompleteSignupResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid OTP or signup data not found' })
+  @ApiOperation({ summary: 'Complete signup process' })
+  @ApiResponse({ status: 201, type: CompleteSignupResponseDto })
   @HttpCode(HttpStatus.CREATED)
   @Post('signup/complete')
   completeSignup(@Body() dto: CompleteSignupDto) {
@@ -118,16 +91,8 @@ export class AuthController {
 
   // ─── Traditional Authentication ────────────────────────────────
 
-  @ApiOperation({ 
-    summary: 'Direct signup without OTP', 
-    description: 'Create user account directly (for admin or testing)' 
-  })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'User created successfully',
-    type: AuthResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Email already exists' })
+  @ApiOperation({ summary: 'Direct signup (testing/admin only)' })
+  @ApiResponse({ status: 201, type: AuthResponseDto })
   @HttpCode(HttpStatus.CREATED)
   @Post('signup')
   signup(@Body() dto: CreateUserDto) {
@@ -135,12 +100,7 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'User login' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Login successful',
-    type: AuthResponseDto,
-  })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 200, type: AuthResponseDto })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   login(@Body() dto: LoginDto) {
@@ -150,12 +110,7 @@ export class AuthController {
   // ─── Password Reset ─────────────────────────────────────────────
 
   @ApiOperation({ summary: 'Initiate password reset' })
-  @ApiResponse({
-    status: 200,
-    description: 'Password reset OTP sent to email',
-    type: SendOtpResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Email not found' })
+  @ApiResponse({ status: 200, type: SendOtpResponseDto })
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -163,11 +118,7 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Reset password with OTP' })
-  @ApiResponse({
-    status: 200,
-    description: 'Password reset successfully',
-  })
-  @ApiResponse({ status: 400, description: 'Invalid OTP or expired' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @HttpCode(HttpStatus.OK)
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
@@ -177,13 +128,8 @@ export class AuthController {
   // ─── Token Management ──────────────────────────────────────────
 
   @ApiOperation({ summary: 'Refresh access token' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Token refreshed successfully' 
-  })
-  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
+  @UseGuards(JwtRefreshStrategy) // 👈 use refresh guard here
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
   refreshToken(@Request() req) {
@@ -193,7 +139,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout user (invalidate tokens)' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard) // 👈 only access token needed here
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   logout(@Request() req) {

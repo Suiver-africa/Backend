@@ -85,7 +85,7 @@ export class VerifyOtpDto {
   type?: OtpType = OtpType.SIGNUP;
 }
 
-// ─── Two-Step Signup DTOs ────────────────────────
+// ─── Two-Step Signup DTOs ─────────;───────────────
 
 export class InitialSignupDto {
   @ApiProperty({ example: 'user@example.com' })

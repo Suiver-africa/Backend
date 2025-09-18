@@ -164,7 +164,15 @@ export class AuthService {
       this.pendingSignups.delete(dto.email);
 
       return {
-        user,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? undefined,
+          lastName: user.lastName ?? undefined,
+          phone: user.phone ?? undefined,
+          tag: user.tag ?? undefined,
+          createdAt: user.createdAt,
+        },
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
       };
@@ -237,7 +245,15 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
 
     return {
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName ?? undefined,
+        lastName: user.lastName ?? undefined,
+        phone: user.phone ?? undefined,
+        tag: user.tag ?? undefined,
+        createdAt: user.createdAt,
+      },
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
     };
@@ -255,10 +271,10 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phone: user.phone,
-        tag: user.tag,
+        firstName: user.firstName ?? undefined,
+        lastName: user.lastName ?? undefined,
+        phone: user.phone ?? undefined,
+        tag: user.tag ?? undefined,
         createdAt: user.createdAt,
       },
       accessToken: tokens.access_token,
@@ -381,7 +397,19 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName ?? undefined,
+      lastName: user.lastName ?? undefined,
+      phone: user.phone ?? undefined,
+      tag: user.tag ?? undefined,
+      referralCode: user.referralCode ?? undefined,
+      kycStatus: user.kycStatus ?? undefined,
+      biometricEnabled: user.biometricEnabled,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   // ─── Helper Methods ─────────────────────────────────────────────
