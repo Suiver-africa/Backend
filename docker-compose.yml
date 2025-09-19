@@ -5,9 +5,9 @@ services:
     container_name: suiver-postgres
     restart: always
     environment:
-      POSTGRES_DB: suiver
-      POSTGRES_USER: suiver
-      POSTGRES_PASSWORD: suiver040
+      POSTGRES_DB: ${POSTGRES_USER}
+      POSTGRES_USER: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -19,10 +19,21 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgres://suiver:suiver040@postgres:5432/suiver
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_TOKEN_EXPIRY: ${JWT_ACCESS_TOKEN_EXPIRY}
+      USD_TO_NGN_RATE: ${USD_TO_NGN_RATE}
     depends_on:
       - postgres
     command: npm run start:dev
 
 volumes:
   postgres_data:
+
+      networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
