@@ -66,6 +66,7 @@ export class UsersService {
       if (e.code === 'P2002') throw new BadRequestException('Unique constraint failed');
       throw e;
     }
+    
   }
 
   async login(dto: LoginDto) {

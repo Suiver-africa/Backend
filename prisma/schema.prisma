@@ -31,6 +31,8 @@ model User {
   referrals        User[]          @relation("Referrals")
   security         UserSecurity?
   wallets          Wallet[]
+  sentReferrals    Referral[] @relation("ReferralInviter")
+  receivedReferral Referral[] @relation("ReferralInvitee")
 }
 
 model Wallet {
@@ -93,6 +95,9 @@ model Referral {
   inviteeId String?
   reward    BigInt   @default(0)
   createdAt DateTime @default(now())
+
+  inviter   User     @relation("ReferralInviter", fields: [inviterId], references: [id])
+  invitee   User?    @relation("ReferralInvitee", fields: [inviteeId], references: [id])
 }
 
 model UserSecurity {
