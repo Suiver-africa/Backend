@@ -1,19 +1,15 @@
-# Stage 1: build
-FROM node:18 AS build
+# build stage
+FROM node:20 AS builder
 WORKDIR /app
-
 COPY package*.json ./
 RUN npm install
-
 COPY . .
 RUN npm run build
 
-# Stage 2: runtime
-FROM node:18 AS production
+# runtime stage
+FROM node:20
 WORKDIR /app
-
-COPY --from=build /app/package*.json ./
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-
-CMD ["node", "dist/main"]
+COPY --from=builder /app/dist ./dist
+COPY package*.json ./
+RUN npm install --omit=dev
+CMD ["node", "dist/main.js"]
