@@ -5,9 +5,9 @@ services:
     container_name: suiver-postgres
     restart: always
     environment:
-      POSTGRES_DB: db_de5ded4f
-      POSTGRES_USER: user_7afcbc4f
-      POSTGRES_PASSWORD: 6204e4bc3198d40f5e626515a41ce246
+      POSTGRES_DB: suiver
+      POSTGRES_USER: suiver
+      POSTGRES_PASSWORD: suiver040
     ports:
       - "5432:5432"
     volumes:
@@ -19,7 +19,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgres://user_7afcbc4f:6204e4bc3198d40f5e626515a41ce246@db.pxxl.pro:37151/db_de5ded4f
+      DATABASE_URL: postgres://suiver:suiver040@postgres:5432/suiver
     depends_on:
       - postgres
     command: npm run start:dev
