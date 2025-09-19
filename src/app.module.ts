@@ -9,6 +9,12 @@ import { PaymentLinksModule  } from './payment-links/payment-links.module';
 // import { ReferralModule } from './referral/referral.module';
 // import { UserSecurityModule } from './user-security/user-security.module';
 import { AuthModule } from './auth/auth.module';
+import { ReferralModule } from './referral/referral.module';
+import { PaymentsModule } from './payments/payments.module';
+import { MailModule } from './otp/mail.module';
+import { UserSecurityModule } from './user-security/user.module';
+import { OtpModule } from './otp/otp.module';
+import { CryptoModule } from './crypto/crypto.module';
 
 @Module({
   imports: [
@@ -22,6 +28,12 @@ import { AuthModule } from './auth/auth.module';
     TransactionsModule,
     BeneficiariesModule,
      PaymentLinksModule ,
+     ReferralModule,
+     PaymentsModule,
+     MailModule,
+     UserSecurityModule,
+     OtpModule,
+     CryptoModule,
     
   ],
 })

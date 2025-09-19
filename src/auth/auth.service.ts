@@ -157,6 +157,14 @@ export class AuthService {
         },
       });
 
+      // Process referral reward if user was referred
+      if (pendingSignup.referredByCode) {
+        const referrerId = await this.findReferrerId(pendingSignup.referredByCode);
+        if (referrerId) {
+          await this.processReferralReward(referrerId, user.id);
+        }
+      }
+
       // Generate tokens
       const tokens = await this.generateTokens(user.id, user.email);
 
@@ -183,15 +191,14 @@ export class AuthService {
     }
   }
 
- async resendSignupOtp(email: string) {
-  const pendingSignup = this.pendingSignups.get(email);
-  if (!pendingSignup) {
-    throw new BadRequestException('No pending signup found for this email');
+  async resendSignupOtp(email: string) {
+    const pendingSignup = this.pendingSignups.get(email);
+    if (!pendingSignup) {
+      throw new BadRequestException('No pending signup found for this email');
+    }
+
+    return this.otpService.sendOtp(email, 'SIGNUP');
   }
-
-  return this.otpService.sendOtp(email, 'SIGNUP');
-}
-
 
   // ─── Traditional Authentication ────────────────────────────────
 
@@ -240,6 +247,14 @@ export class AuthService {
         balance: BigInt(0),
       },
     });
+
+    // Process referral reward if user was referred (for traditional signup)
+    if (dto.referredByCode) {
+      const referrerId = await this.findReferrerId(dto.referredByCode);
+      if (referrerId) {
+        await this.processReferralReward(referrerId, user.id);
+      }
+    }
 
     const tokens = await this.generateTokens(user.id, user.email);
 
@@ -332,9 +347,6 @@ export class AuthService {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
     });
 
-    // Store refresh token in database (optional)
-    // await this.storeRefreshToken(userId, refreshToken);
-
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -355,9 +367,6 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    // In a more robust implementation, you'd invalidate the refresh token here
-    // await this.invalidateRefreshToken(userId);
-    
     return {
       success: true,
       message: 'Logged out successfully',
@@ -409,6 +418,59 @@ export class AuthService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+  }
+
+  // ─── Referral Processing ───────────────────────────────────────
+
+  private async processReferralReward(referrerId: string, newUserId: string) {
+    const rewardAmount = this.configService.get('REFERRAL_REWARD_AMOUNT', '1000');
+    
+    try {
+      // Find referrer's NGN wallet
+      const referrerWallet = await this.prisma.wallet.findUnique({
+        where: {
+          userId_currency: {
+            userId: referrerId,
+            currency: 'NGN',
+          },
+        },
+      });
+
+      if (referrerWallet) {
+        // Add reward to referrer's wallet
+        await this.prisma.wallet.update({
+          where: { id: referrerWallet.id },
+          data: { balance: { increment: BigInt(rewardAmount) } },
+        });
+
+        // Create transaction record
+        await this.prisma.transaction.create({
+          data: {
+            userId: referrerId,
+            fromWalletId: referrerWallet.id,
+            toWalletId: referrerWallet.id,
+            type: 'DEPOSIT',
+            amount: BigInt(rewardAmount),
+            currency: 'NGN',
+            description: `Referral bonus for inviting new user`,
+            status: 'COMPLETED',
+          },
+        });
+
+        // Create referral record for tracking
+        await this.prisma.referral.create({
+          data: {
+            code: `REF-${Date.now()}`,
+            inviterId: referrerId,
+            inviteeId: newUserId,
+            reward: BigInt(rewardAmount),
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Referral reward processing failed:', error);
+      // Don't throw here - we don't want referral issues to break signup
+    }
   }
 
   // ─── Helper Methods ─────────────────────────────────────────────
