@@ -1,23 +1,19 @@
-# Use Node.js 20 LTS
-FROM node:20-alpine
+# Stage 1: build
+FROM node:18 AS build
+WORKDIR /app
 
-# Set working directory
-WORKDIR /usr/src/app
-
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy all source code
 COPY . .
-
-# Build the NestJS app
 RUN npm run build
 
-# Expose port
-EXPOSE 3000
+# Stage 2: runtime
+FROM node:18 AS production
+WORKDIR /app
 
-# Start the app
-CMD ["npm", "run", "start:dev"]
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+
+CMD ["node", "dist/main"]
