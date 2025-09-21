@@ -11,7 +11,7 @@ export class TransactionsService {
     if (!wallet) throw new NotFoundException('Wallet not found for currency ' + currency);
     return wallet;
   }
-
+//payment gateway integration pending
   private async getDailyOutgoingNgN(userId: string) {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const txs = await this.prisma.transaction.findMany({
