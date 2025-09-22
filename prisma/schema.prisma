@@ -16,6 +16,7 @@ model User {
   firstName        String?
   lastName         String?
   kycStatus        String?         @default("NOT_SUBMITTED")
+  age              Int?
   referralCode     String?         @unique
   referredById     String?
   biometricEnabled Boolean         @default(false)
@@ -60,6 +61,7 @@ model Wallet {
 model CryptoAddress {
   id        String   @id @default(cuid())
   userId    String
+  chain     String
   currency  String
   address   String   @unique
   createdAt DateTime @default(now())
@@ -87,6 +89,7 @@ model Transaction {
   toWalletId   String?  // Changed to String and made optional
   type         TransactionType
   amount       BigInt
+  
   currency     String
   description  String?
   

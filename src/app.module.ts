@@ -15,6 +15,7 @@ import { MailModule } from './otp/mail.module';
 import { UserSecurityModule } from './user-security/user.module';
 import { OtpModule } from './otp/otp.module';
 import { CryptoModule } from './crypto/crypto.module';
+import { AutomationModule } from './automation/automation.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CryptoModule } from './crypto/crypto.module';
      UserSecurityModule,
      OtpModule,
      CryptoModule,
+     AutomationModule,
     
   ],
 })
