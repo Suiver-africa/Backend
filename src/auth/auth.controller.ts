@@ -6,8 +6,14 @@ import {
   HttpStatus,
   Request,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { OtpService } from '../otp/otp.service';
 import {
@@ -18,7 +24,10 @@ import {
   SendOtpDto,
   VerifyOtpDto,
 } from '../user/dto/auth.dto';
-import { JwtAuthGuard} from './jwt-auth.guard';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -26,6 +35,8 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly otpService: OtpService,
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
   ) {}
 
   // ───── Authentication ─────
@@ -86,7 +97,7 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Refresh JWT access token' })
   @ApiResponse({ status: 200, description: 'Token refreshed' })
-    @ApiBearerAuth()
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
@@ -108,5 +119,34 @@ export class AuthController {
   @Post('me')
   async getCurrentUser(@Request() req) {
     return this.authService.getCurrentUser(req.user.id);
+  }
+
+  // ───── Admin Login ─────
+
+  @ApiOperation({ summary: 'Admin login' })
+  @ApiResponse({ status: 200, description: 'Admin login successful' })
+  @HttpCode(HttpStatus.OK)
+  @Post('admin/login')
+  async adminLogin(@Body() dto: { email: string; password: string }) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user || !user.isAdmin) {
+      throw new UnauthorizedException('Invalid admin credentials');
+    }
+
+    const isValid = await bcrypt.compare(dto.password, user.password);
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid admin credentials');
+    }
+
+    const token = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      role: 'admin',
+    });
+
+    return { token };
   }
 }

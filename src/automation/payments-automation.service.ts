@@ -57,7 +57,7 @@ export class PaymentsAutomationService implements OnModuleInit {
     this.logger.log('Automation received deposit: ' + JSON.stringify(evt));
 
     // idempotency: txHash check
-    const existing = await this.prisma.transaction.findFirst({ where: { txHash: evt.txHash } });
+    const existing = await this.prisma.transaction.findFirst({ where: { hash: evt.txHash } });
     if (existing) {
       this.logger.log('Duplicate tx ignored: ' + evt.txHash);
       return;
@@ -65,19 +65,24 @@ export class PaymentsAutomationService implements OnModuleInit {
 
     // find owning user by custodial address
     const owner = await this.custodial.getByAddress(evt.address);
-    const userId = owner?.userId || null;
+    const userId = owner?.userId;
+    if (!userId) {
+      this.logger.warn(`Deposit received for unknown address ${evt.address}; ignoring.`);
+      return;
+    }
 
     // create transaction
     const tx = await this.prisma.transaction.create({
       data: {
         amount: BigInt(evt.amount || '0'),
         currency: evt.symbol,
-        txHash: evt.txHash,
+        hash: evt.txHash,
         status: 'PENDING',
         type: 'DEPOSIT',
         fromWalletId: null,
         toWalletId: null,
-        userId: userId
+        userId: userId,
+        nairaAmount: 0 // Initialize required field
       }
     });
 
@@ -103,7 +108,7 @@ export class PaymentsAutomationService implements OnModuleInit {
         const recipient = process.env.PAYSTACK_RECIPIENT_CODE || null;
         if (!recipient) throw new Error('PAYSTACK_RECIPIENT_CODE not configured; cannot transfer');
         const resp = await this.paystack.initiateTransfer({ recipient, amount: payoutNgn * 100, reference: 'swap_' + tx.id });
-        await this.prisma.transaction.update({ where: { id: tx.id }, data: { status: 'PROCESSING', meta: { payout: resp } } });
+        await this.prisma.transaction.update({ where: { id: tx.id }, data: { status: 'PROCESSING', metadata: { payout: resp } } });
         this.logger.log('Paystack transfer response: ' + JSON.stringify(resp));
       } else if (this.flutterwave) {
         this.logger.log('Triggering Flutterwave payout for tx ' + tx.id);
@@ -111,15 +116,15 @@ export class PaymentsAutomationService implements OnModuleInit {
         const acct = process.env.DUMMY_ACCOUNT || '0000000000';
         const bank = process.env.DUMMY_BANK_CODE || '000';
         const resp = await this.flutterwave.transfer({ account_bank: bank, account_number: acct, amount: payoutNgn, narration: 'deposit payment', reference: 'swap_' + tx.id });
-        await this.prisma.transaction.update({ where: { id: tx.id }, data: { status: 'PROCESSING', meta: { payout: resp } } });
+        await this.prisma.transaction.update({ where: { id: tx.id }, data: { status: 'PROCESSING', metadata: { payout: resp } } });
         this.logger.log('Flutterwave transfer response: ' + JSON.stringify(resp));
       } else {
         this.logger.log('No payout provider configured; marking transaction for manual processing');
-        await this.prisma.transaction.update({ where: { id: tx.id }, data: { status: 'PROCESSING', meta: { note: 'Awaiting payout provider' } } });
+        await this.prisma.transaction.update({ where: { id: tx.id }, data: { status: 'PROCESSING', metadata: { note: 'Awaiting payout provider' } } });
       }
     } catch (err) {
       this.logger.error('Error during payout: ' + (err?.message || err));
-      await this.prisma.transaction.update({ where: { id: tx.id }, data: { status: 'FAILED', meta: { error: '' + err } } });
+      await this.prisma.transaction.update({ where: { id: tx.id }, data: { status: 'FAILED', metadata: { error: '' + err } } });
     }
   }
 }

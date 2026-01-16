@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class PaymentLinksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, dto: CreatePaymentLinkDto) {
     // Check if user has any wallets (or specify currency if needed)
@@ -15,15 +15,16 @@ export class PaymentLinksService {
     }
 
     // Generate a unique code
-    const code = dto.openAmount 
-      ? `OPEN-${uuidv4().slice(0, 8).toUpperCase()}` 
+    const code = dto.openAmount
+      ? `OPEN-${uuidv4().slice(0, 8).toUpperCase()}`
       : uuidv4().slice(0, 8).toUpperCase();
 
     // Create the payment link
     const paymentLink = await this.prisma.paymentLink.create({
       data: {
         userId,
-        amount: dto.amount ? BigInt(Math.floor(dto.amount)) : null,
+        title: dto.title || 'Payment Link',
+        amount: dto.amount ? dto.amount : 0,
         openAmount: !!dto.openAmount,
         code,
       },
@@ -104,7 +105,7 @@ export class PaymentLinksService {
     const updatedLink = await this.prisma.paymentLink.update({
       where: { id },
       data: {
-        ...(dto.amount && { amount: BigInt(Math.floor(dto.amount)) }),
+        ...(dto.amount && { amount: dto.amount }),
         ...(dto.openAmount !== undefined && { openAmount: !!dto.openAmount }),
       },
     });
@@ -120,9 +121,9 @@ export class PaymentLinksService {
     // Check if user has a wallet for the specific currency
     const wallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_currency: {
+        userId_cryptocurrency: {
           userId,
-          currency,
+          cryptocurrency: currency,
         },
       },
     });
@@ -131,15 +132,16 @@ export class PaymentLinksService {
       throw new NotFoundException(`Wallet for ${currency} not found`);
     }
 
-    const code = dto.openAmount 
-      ? `OPEN-${uuidv4().slice(0, 8).toUpperCase()}` 
+    const code = dto.openAmount
+      ? `OPEN-${uuidv4().slice(0, 8).toUpperCase()}`
       : uuidv4().slice(0, 8).toUpperCase();
 
     const paymentLink = await this.prisma.paymentLink.create({
       data: {
         userId,
-        amount: dto.amount ? BigInt(Math.floor(dto.amount)) : null,
+        amount: dto.amount ? dto.amount : 0,
         openAmount: !!dto.openAmount,
+        title: dto.title || 'Payment Link',
         code,
       },
     });

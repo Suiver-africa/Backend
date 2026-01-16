@@ -3,14 +3,19 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CryptoService } from '../crypto/crypto.service';
 import { ConfigService } from '@nestjs/config';
 @Injectable()
-export class PaymentService {
-  private readonly logger = new Logger(PaymentService.name);
+export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
 
   constructor(
     private cryptoService: CryptoService,
     private configService: ConfigService,
     private prisma: PrismaService
-  ) {}
+  ) { }
+
+  // Airtime purchase convenience method
+  async buyAirtime(userId: string, phone: string, amount: number) {
+    return this.payBill(userId, 'AIRTIME', amount, phone, 'VTU');
+  }
 
   // Process crypto to Naira conversion
   async processCryptoToNaira(
@@ -265,7 +270,7 @@ export class PaymentService {
   ): Promise<any> {
     try {
       const code = `pl_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      
+
       const paymentLink = await this.prisma.paymentLink.create({
         data: {
           userId,
