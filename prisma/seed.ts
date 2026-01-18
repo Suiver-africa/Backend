@@ -4,12 +4,12 @@ const prisma = new PrismaClient()
 
 async function main() {
   // Cleanup for idempotent seeding (dev only)
-  await prisma.otp.deleteMany().catch(() => {})
-  await prisma.transaction.deleteMany().catch(() => {})
-  await prisma.wallet.deleteMany().catch(() => {})
-  await prisma.beneficiary.deleteMany().catch(() => {})
-  await prisma.paymentLink.deleteMany().catch(() => {})
-  await prisma.user.deleteMany().catch(() => {})
+  await prisma.otp.deleteMany().catch(() => { })
+  await prisma.transaction.deleteMany().catch(() => { })
+  await prisma.wallet.deleteMany().catch(() => { })
+  await prisma.beneficiary.deleteMany().catch(() => { })
+  await prisma.paymentLink.deleteMany().catch(() => { })
+  await prisma.user.deleteMany().catch(() => { })
 
   const alice = await prisma.user.create({
     data: {
@@ -24,13 +24,13 @@ async function main() {
   })
 
   const aliceWallet = await prisma.wallet.create({
-    data: { userId: alice.id, balance: BigInt(100000), currency: "NGN" }
+    data: { userId: alice.id, balance: 100000, currency: "NGN" }
   })
 
   const bob = await prisma.user.create({
     data: {
       firstName: "Bob",
-      lastName: "Suiver",      
+      lastName: "Suiver",
       email: "bob@suiver.app",
       password: "$2b$10$eW5nbG9iYWwyMzQ1Njc4OTBwYXNzd29yZA==",
       phone: "08020000002",
@@ -41,7 +41,7 @@ async function main() {
   })
 
   const bobWallet = await prisma.wallet.create({
-    data: { userId: bob.id, balance: BigInt(50000), currency: "NGN" }
+    data: { userId: bob.id, balance: 50000, currency: "NGN" }
   })
 
   await prisma.transaction.createMany({
@@ -50,8 +50,9 @@ async function main() {
         fromWalletId: aliceWallet.id,
         toWalletId: bobWallet.id,
         userId: alice.id,
-        type: "SEND",
+        type: "TRANSFER",
         amount: BigInt(10000),
+        nairaAmount: 10000,
         currency: "NGN",
         description: "Seed send",
         status: "PENDING"
@@ -62,6 +63,7 @@ async function main() {
         userId: bob.id,
         type: "RECEIVE",
         amount: BigInt(5000),
+        nairaAmount: 5000,
         currency: "NGN",
         description: "Seed receive",
         status: "PENDING"
@@ -83,7 +85,7 @@ async function main() {
         attempts: 0,
         verified: false,
         createdAt: now,
-       
+
       },
       {
         email: "bob@suiver.app",
@@ -93,7 +95,7 @@ async function main() {
         attempts: 1,
         verified: false,
         createdAt: now,
-        
+
       }
     ]
   })

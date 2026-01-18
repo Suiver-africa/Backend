@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { CryptoService } from './crypto.service';
 import { DepositController } from './deposit.controller';
-import { PrismaModule } from '../../prisma/prisma.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { RateService } from './rate.service';
+import { TransactionsModule } from '../transactions/transactions.module';
 
 @Module({
   imports: [
@@ -14,9 +15,10 @@ import { RateService } from './rate.service';
       maxRedirects: 3,
     }),
     ConfigModule,
+    forwardRef(() => TransactionsModule),
   ],
   providers: [CryptoService, RateService],
   controllers: [DepositController],
   exports: [CryptoService, RateService],
 })
-export class CryptoModule {}
+export class CryptoModule { }

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { OtpService } from '../otp/otp.service';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
@@ -153,7 +153,7 @@ export class AuthService {
         data: {
           userId: user.id,
           currency: 'NGN',
-          balance: BigInt(0),
+          balance: 0,
         },
       });
 
@@ -244,7 +244,7 @@ export class AuthService {
       data: {
         userId: user.id,
         currency: 'NGN',
-        balance: BigInt(0),
+        balance: 0,
       },
     });
 
@@ -354,7 +354,7 @@ export class AuthService {
   }
 
   async refreshToken(userId: string) {
-    const user = await this.prisma.user.findUnique({ 
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true },
     });
@@ -424,7 +424,7 @@ export class AuthService {
 
   private async processReferralReward(referrerId: string, newUserId: string) {
     const rewardAmount = this.configService.get('REFERRAL_REWARD_AMOUNT', '1000');
-    
+
     try {
       // Find referrer's NGN wallet
       const referrerWallet = await this.prisma.wallet.findUnique({
@@ -440,7 +440,7 @@ export class AuthService {
         // Add reward to referrer's wallet
         await this.prisma.wallet.update({
           where: { id: referrerWallet.id },
-          data: { balance: { increment: BigInt(rewardAmount) } },
+          data: { balance: { increment: Number(rewardAmount) } },
         });
 
         // Create transaction record
@@ -451,6 +451,7 @@ export class AuthService {
             toWalletId: referrerWallet.id,
             type: 'DEPOSIT',
             amount: BigInt(rewardAmount),
+            nairaAmount: Number(rewardAmount),
             currency: 'NGN',
             description: `Referral bonus for inviting new user`,
             status: 'COMPLETED',
@@ -485,15 +486,15 @@ export class AuthService {
 
   private async generateUniqueTag(firstName?: string, lastName?: string): Promise<string> {
     let baseTag = '';
-    
+
     if (firstName) {
       baseTag = firstName.toLowerCase().replace(/[^a-z0-9]/g, '');
     }
-    
+
     if (lastName) {
       baseTag += lastName.toLowerCase().replace(/[^a-z0-9]/g, '');
     }
-    
+
     if (!baseTag) {
       baseTag = 'user';
     }
@@ -510,7 +511,7 @@ export class AuthService {
     // Generate unique tag with numbers
     let counter = 1;
     let uniqueTag = `${baseTag}${counter}`;
-    
+
     while (await this.prisma.user.findUnique({ where: { tag: uniqueTag } })) {
       counter++;
       uniqueTag = `${baseTag}${counter}`;
@@ -526,11 +527,11 @@ export class AuthService {
     do {
       // Generate 8-character alphanumeric code
       referralCode = randomBytes(4).toString('hex').toUpperCase();
-      
+
       const existingCode = await this.prisma.user.findUnique({
         where: { referralCode },
       });
-      
+
       exists = !!existingCode;
     } while (exists);
 

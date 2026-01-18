@@ -1,16 +1,25 @@
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { CryptoService } from '../crypto/crypto.service';
 import { ConfigService } from '@nestjs/config';
+import { VTPassService } from './providers/vtpass.service';
 @Injectable()
-export class PaymentService {
-  private readonly logger = new Logger(PaymentService.name);
+export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
 
   constructor(
     private cryptoService: CryptoService,
     private configService: ConfigService,
-    private prisma: PrismaService
-  ) {}
+    private prisma: PrismaService,
+    private vtPassService: VTPassService,
+  ) { }
+
+  // Airtime purchase convenience method
+  async buyAirtime(userId: string, phone: string, amount: number) {
+    // Map to VTPass service provider
+    const provider = 'mtn'; // Default for MVP, can be dynamic
+    return this.payBill(userId, 'AIRTIME', amount, phone, provider);
+  }
 
   // Process crypto to Naira conversion
   async processCryptoToNaira(
@@ -24,7 +33,7 @@ export class PaymentService {
       const wallet = await this.prisma.wallet.findFirst({
         where: {
           userId,
-          cryptocurrency: cryptocurrency.toUpperCase(),
+          currency: cryptocurrency.toUpperCase(),
           address: walletAddress,
           isActive: true
         }
@@ -131,7 +140,7 @@ export class PaymentService {
         }
       });
 
-      // Process bill payment (integrate with VTPass, Paystack, etc.)
+      // Process bill payment (integrated with VTPass)
       const result = await this.processBillPayment({
         userId,
         billType,
@@ -145,16 +154,17 @@ export class PaymentService {
       await this.prisma.transaction.update({
         where: { id: transaction.id },
         data: {
-          status: result.status === 'successful' ? 'COMPLETED' : 'FAILED',
-          hash: result.reference
+          status: result.code === '000' ? 'COMPLETED' : 'FAILED',
+          hash: result.requestId
         }
       });
 
       return {
-        success: true,
+        success: result.code === '000',
         transactionId: transaction.id,
-        status: result.status,
-        reference: result.reference
+        status: result.code === '000' ? 'successful' : 'failed',
+        reference: result.requestId,
+        details: result.content
       };
 
     } catch (error) {
@@ -164,11 +174,14 @@ export class PaymentService {
   }
 
   private async processBillPayment(data: any): Promise<any> {
-    // Mock implementation - replace with actual bill payment API (VTPass, Paystack, etc.)
+    if (data.billType === 'AIRTIME') {
+      return this.vtPassService.purchaseAirtime(data.accountNumber, data.amount, data.provider || 'mtn');
+    }
+    // Mock simulation for other types
     return {
-      transactionId: data.transactionId,
-      status: 'successful',
-      reference: `REF${Date.now()}`
+      code: '000',
+      requestId: `MOCK-${Date.now()}`,
+      content: { status: 'successful' }
     };
   }
 
@@ -265,7 +278,7 @@ export class PaymentService {
   ): Promise<any> {
     try {
       const code = `pl_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      
+
       const paymentLink = await this.prisma.paymentLink.create({
         data: {
           userId,
@@ -280,7 +293,7 @@ export class PaymentService {
         }
       });
 
-      const linkUrl = `${this.configService.get('FRONTEND_URL') || 'https://yourapp.com'}/pay/${code}`;
+      const linkUrl = `${this.configService.get('FRONTEND_URL') || 'https://suiverafica.vercel.app/'}/pay/${code}`;
 
       return {
         success: true,
@@ -302,9 +315,9 @@ export class PaymentService {
       // Check if wallet already exists
       const existingWallet = await this.prisma.wallet.findUnique({
         where: {
-          userId_cryptocurrency: {
+          userId_currency: {
             userId,
-            cryptocurrency: cryptocurrency.toUpperCase()
+            currency: cryptocurrency.toUpperCase()
           }
         }
       });
@@ -314,7 +327,7 @@ export class PaymentService {
           success: true,
           wallet: {
             address: existingWallet.address,
-            cryptocurrency: existingWallet.cryptocurrency
+            currency: existingWallet.currency
           },
           message: 'Wallet already exists'
         };
@@ -330,7 +343,7 @@ export class PaymentService {
       const wallet = await this.prisma.wallet.create({
         data: {
           userId,
-          cryptocurrency: cryptocurrency.toUpperCase(),
+          currency: cryptocurrency.toUpperCase(),
           address: walletData.address,
           privateKey: encryptedPrivateKey,
           publicKey: walletData.publicKey,
@@ -345,7 +358,7 @@ export class PaymentService {
         wallet: {
           id: wallet.id,
           address: wallet.address,
-          cryptocurrency: wallet.cryptocurrency,
+          cryptocurrency: wallet.currency,
           balance: wallet.balance.toNumber()
         }
       };

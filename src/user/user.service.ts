@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, LoginDto } from './dto/auth.dto';
 import {
   UpdateUserDto,
@@ -19,7 +19,7 @@ import { KycDto } from './dto/kyc.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService, private jwtService: JwtService) {}
+  constructor(private prisma: PrismaService, private jwtService: JwtService) { }
 
   // ---------------- AUTH ----------------
   async signup(dto: CreateUserDto) {
@@ -47,16 +47,20 @@ export class UsersService {
       const user = await this.prisma.user.create({ data });
 
       // create wallets for multiple currencies (NGN + common cryptos)
-      const currencies = ['NGN','BTC','ETH','BNB','LTC','SUI','SOL','USDT'];
+      const currencies = ['NGN', 'BTC', 'ETH', 'BNB', 'LTC', 'SUI', 'SOL', 'USDT'];
       for (const cur of currencies) {
         await this.prisma.wallet.create({
-          data: { userId: user.id, balance: BigInt(0), currency: cur },
+          data: {
+            userId: user.id,
+            balance: 0,
+            currency: cur,
+          },
         });
         // create a deposit address for crypto currencies (not for NGN)
         if (cur !== 'NGN') {
           const addr = `suiver_${cur.toLowerCase()}_${uuidv4().split('-')[0]}`;
           await this.prisma.cryptoAddress.create({
-            data: { userId: user.id, currency: cur, address: addr },
+            data: { userId: user.id, currency: cur, chain: cur, address: addr },
           });
         }
       }
@@ -66,7 +70,7 @@ export class UsersService {
       if (e.code === 'P2002') throw new BadRequestException('Unique constraint failed');
       throw e;
     }
-    
+
   }
 
   async login(dto: LoginDto) {

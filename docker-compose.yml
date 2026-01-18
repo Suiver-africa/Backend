@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "37151:37151"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

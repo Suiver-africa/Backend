@@ -15,40 +15,70 @@ export class PaystackService {
   }
 
   /**
-   * triggerPayout
-   * - Accepts recipient bank details and amount in kobo (NGN * 100)
-   * - Returns the Paystack transfer response (minimal fields)
+   * verifyAccount
+   * - Verifies a bank account number and bank code
    */
-  async triggerPayout({ account_number, bank_code, amount, currency = 'NGN', reference }: {
+  async verifyAccount(account_number: string, bank_code: string) {
+    if (!this.secret) throw new Error('Paystack secret not configured');
+    try {
+      const response = await axios.get(`https://api.paystack.co/bank/resolve?account_number=${account_number}&bank_code=${bank_code}`, {
+        headers: { Authorization: `Bearer ${this.secret}` }
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Paystack account verification failed:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * triggerPayout
+   * - 1. Creates a transfer recipient
+   * - 2. Initiates the transfer
+   */
+  async triggerPayout({ account_number, bank_code, amount, currency = 'NGN', reference, account_name }: {
     account_number: string,
     bank_code: string,
     amount: number,
     currency?: string,
-    reference?: string
+    reference?: string,
+    account_name: string
   }) {
     if (!this.secret) throw new Error('Paystack secret not configured');
-    const url = 'https://api.paystack.co/transfer';
-    const payload = {
-      source: 'balance',
-      amount,
-      recipient: null,
-      reason: 'deposit payment',
-      reference
-    };
-    // Note: Proper flow requires first creating a recipient then initiating transfer.
-    // This function demonstrates the transfer call shape. Replace with two-step flow.
-    this.logger.log(`(Paystack) triggerPayout mock - amount ${amount} ${currency}`);
-    // *Mocked response* - do not actually call external API in this environment
-    return {
-      status: true,
-      message: 'Mocked transfer created',
-      data: {
-        id: 'mock_tr_' + Date.now(),
-        amount,
-        currency,
-        reference: reference || 'mockref' + Date.now(),
-        status: 'pending'
+
+    try {
+      // 1. Create Transfer Recipient
+      const recipientResponse = await axios.post('https://api.paystack.co/transferrecipient', {
+        type: 'nuban',
+        name: account_name,
+        account_number,
+        bank_code,
+        currency
+      }, {
+        headers: { Authorization: `Bearer ${this.secret}` }
+      });
+
+      if (!recipientResponse.data.status) {
+        throw new Error('Failed to create Paystack transfer recipient');
       }
-    };
+
+      const recipientCode = recipientResponse.data.data.recipient_code;
+
+      // 2. Initiate Transfer
+      const transferResponse = await axios.post('https://api.paystack.co/transfer', {
+        source: 'balance',
+        amount, // amount in kobo
+        recipient: recipientCode,
+        reason: 'Suiver Payout',
+        reference
+      }, {
+        headers: { Authorization: `Bearer ${this.secret}` }
+      });
+
+      return transferResponse.data;
+    } catch (error) {
+      this.logger.error('Paystack payout failed:', error.response?.data || error.message);
+      throw error;
+    }
   }
 }

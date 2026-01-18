@@ -1,4 +1,4 @@
-import { IsOptional, IsBoolean, IsNumber } from 'class-validator';
+import { IsOptional, IsBoolean, IsNumber, IsString } from 'class-validator';
 export class CreatePaymentLinkDto {
   @IsOptional()
   @IsNumber()
@@ -6,4 +6,8 @@ export class CreatePaymentLinkDto {
   @IsOptional()
   @IsBoolean()
   openAmount?: boolean;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
 }

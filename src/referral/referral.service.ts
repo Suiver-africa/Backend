@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 
@@ -8,7 +8,7 @@ export class ReferralService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   // ─── Public Methods ─────────────────────────────────────────────
 
@@ -174,7 +174,7 @@ export class ReferralService {
             where: { id: referrerWallet.id },
             data: {
               balance: {
-                increment: BigInt(rewardAmount),
+                increment: rewardAmount,
               },
             },
           });
@@ -187,6 +187,7 @@ export class ReferralService {
               toWalletId: referrerWallet.id,
               type: 'DEPOSIT',
               amount: BigInt(rewardAmount),
+              nairaAmount: rewardAmount,
               currency: 'NGN',
               description: `Referral reward for inviting user`,
               status: 'COMPLETED',
@@ -390,11 +391,11 @@ export class ReferralService {
     do {
       // Generate 8-character alphanumeric code
       referralCode = randomBytes(4).toString('hex').toUpperCase();
-      
+
       const existingCode = await this.prisma.user.findUnique({
         where: { referralCode },
       });
-      
+
       exists = !!existingCode;
     } while (exists);
 

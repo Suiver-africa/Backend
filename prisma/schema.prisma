@@ -35,15 +35,17 @@ model User {
   sentReferrals    Referral[] @relation("ReferralInviter")
   receivedReferral Referral[] @relation("ReferralInvitee")
   transferRequests TransferRequest[]
+
+   isAdmin       Boolean  @default(false)
 }
 
 model Wallet {
   id            String  @id @default(cuid())
   userId        String
-  cryptocurrency String // BTC, ETH, USDT, USDC, SOL, BNB, SUI, APT
-  address       String
-  privateKey    String // Encrypted
-  publicKey     String
+  currency      String // BTC, ETH, USDT, USDC, SOL, BNB, SUI, APT, NGN
+  address       String?
+  privateKey    String? // Made optional for non-custodial
+  publicKey     String?
   balance       Decimal @default(0) @db.Decimal(20, 8)
   nairaBalance  Decimal @default(0) @db.Decimal(15, 2)
   isActive      Boolean @default(true)
@@ -55,7 +57,7 @@ model Wallet {
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
   
   @@map("wallets")
-  @@unique([userId, cryptocurrency])
+  @@unique([userId, currency])
 }
 
 model CryptoAddress {

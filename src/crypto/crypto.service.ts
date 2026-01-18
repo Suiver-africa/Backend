@@ -5,8 +5,10 @@ import * as ecc from 'tiny-secp256k1';
 import { Connection, PublicKey, LAMPORTS_PER_SOL, Keypair } from '@solana/web3.js';
 import Web3 from 'web3';
 
+import { ECPairFactory } from 'ecpair';
 // Initialize bitcoinjs-lib with ecc
 bitcoin.initEccLib(ecc);
+const ECPair = ECPairFactory(ecc);
 
 export interface CryptoPrice {
   symbol: string;
@@ -41,7 +43,7 @@ export class CryptoService {
       const response = await fetch(
         `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether,usd-coin,solana,binancecoin,sui,aptos&vs_currencies=usd&include_24hr_change=true`
       );
-      
+
       const data = await response.json();
       const usdToNgn = await this.getUSDToNGNRate();
 
@@ -112,29 +114,33 @@ export class CryptoService {
     }
   }
 
+
+
   private generateBitcoinWallet() {
     // Generate random private key (32 bytes)
-    const privateKey = Buffer.from(Array.from({length: 32}, () => Math.floor(Math.random() * 256)));
-    
+    const privateKey = Buffer.from(Array.from({ length: 32 }, () => Math.floor(Math.random() * 256)));
+
     // Create key pair from private key
-    const keyPair = bitcoin.ECPair.fromPrivateKey(privateKey);
-    
+    const keyPair = ECPair.fromPrivateKey(privateKey);
+
     // Generate P2PKH (Pay to Public Key Hash) address - most common Bitcoin address format
-    const { address } = bitcoin.payments.p2pkh({ 
-      pubkey: keyPair.publicKey,
+    const { address } = bitcoin.payments.p2pkh({
+      pubkey: Buffer.from(keyPair.publicKey),
       network: bitcoin.networks.bitcoin // Use mainnet
     });
-    
+
     return {
       address: address!,
       privateKey: keyPair.toWIF(), // Wallet Import Format
-      publicKey: keyPair.publicKey.toString('hex')
+      publicKey: Buffer.from(keyPair.publicKey).toString('hex')
     };
   }
 
+
+
   private generateSolanaWallet() {
     const keypair = Keypair.generate();
-    
+
     return {
       address: keypair.publicKey.toString(),
       privateKey: Buffer.from(keypair.secretKey).toString('hex'),
@@ -144,7 +150,7 @@ export class CryptoService {
 
   private generateEthereumWallet() {
     const account = this.web3.eth.accounts.create();
-    
+
     return {
       address: account.address,
       privateKey: account.privateKey,
@@ -155,12 +161,12 @@ export class CryptoService {
   private generateSuiWallet() {
     // For SUI, we'll use a simple key generation approach
     // In production, you'd use the official SUI SDK
-    const privateKey = Buffer.from(Array.from({length: 32}, () => Math.floor(Math.random() * 256)));
+    const privateKey = Buffer.from(Array.from({ length: 32 }, () => Math.floor(Math.random() * 256)));
     const privateKeyHex = '0x' + privateKey.toString('hex');
-    
+
     // This is a simplified SUI address generation - use official SDK in production
     const address = '0x' + privateKey.slice(0, 20).toString('hex').padStart(40, '0');
-    
+
     return {
       address,
       privateKey: privateKeyHex,
@@ -171,12 +177,12 @@ export class CryptoService {
   private generateAptosWallet() {
     // For Aptos, we'll use a simple key generation approach  
     // In production, you'd use the official Aptos SDK
-    const privateKey = Buffer.from(Array.from({length: 32}, () => Math.floor(Math.random() * 256)));
+    const privateKey = Buffer.from(Array.from({ length: 32 }, () => Math.floor(Math.random() * 256)));
     const privateKeyHex = '0x' + privateKey.toString('hex');
-    
+
     // This is a simplified Aptos address generation - use official SDK in production
     const address = '0x' + privateKey.slice(0, 32).toString('hex');
-    
+
     return {
       address,
       privateKey: privateKeyHex,
@@ -243,12 +249,13 @@ export class CryptoService {
 
     try {
       // ERC20 balanceOf ABI
-      const abi = [{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"type":"function"}];
+      const abi = [{ "constant": true, "inputs": [{ "name": "_owner", "type": "address" }], "name": "balanceOf", "outputs": [{ "name": "balance", "type": "uint256" }], "type": "function" }];
       const contract = new this.web3.eth.Contract(abi, contractAddress);
       const balance = await contract.methods.balanceOf(address).call();
-      
+
       // USDT and USDC have 6 decimals
-      return parseInt(balance.toString()) / Math.pow(10, 6);
+      const bal = balance as any;
+      return parseInt(bal ? bal.toString() : '0') / Math.pow(10, 6);
     } catch (error) {
       this.logger.error(`Failed to get ${token} balance:`, error);
       return 0;
@@ -280,7 +287,7 @@ export class CryptoService {
           params: [address, '0x2::sui::SUI']
         })
       });
-      
+
       const data = await response.json();
       return data.result ? parseInt(data.result.totalBalance) / Math.pow(10, 9) : 0;
     } catch (error) {
@@ -305,7 +312,7 @@ export class CryptoService {
   async convertCryptoToNaira(amount: number, cryptocurrency: string): Promise<{ nairaAmount: number; exchangeRate: number }> {
     const prices = await this.getCryptoPrices();
     const cryptoPrice = prices.find(p => p.symbol.toLowerCase() === cryptocurrency.toLowerCase());
-    
+
     if (!cryptoPrice) {
       throw new Error(`Price not found for ${cryptocurrency}`);
     }

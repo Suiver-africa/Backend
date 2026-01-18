@@ -1,24 +1,25 @@
-// simplified
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { EvmListener } from './evm.listener';
+import { ConfigService } from '@nestjs/config';
+
 @Injectable()
-export class ListenerService {
-  constructor(private readonly depositQueue: Queue) {}
+export class ListenerService implements OnModuleInit {
+    private readonly logger = new Logger(ListenerService.name);
 
-  async handleConfirmedTx(tx) {
-    // find user wallet by address
-    const wallet = await this.walletRepo.findByAddress(tx.to);
-    if (!wallet) return;
+    constructor(
+        private readonly evmListener: EvmListener,
+        private readonly configService: ConfigService,
+    ) { }
 
-    const expectedNgn = await this.priceService.cryptoToNgn(tx.amount, tx.chain);
-    await this.depositRepo.create({
-      userId: wallet.userId,
-      chain: tx.chain,
-      txHash: tx.hash,
-      amountCrypto: tx.amount,
-      amountNgnExpected: expectedNgn,
-      status: 'PENDING'
-    });
+    async onModuleInit() {
+        this.logger.log('Starting Blockchain Listeners...');
+        // In a real app, we might want to start this based on a flag or async
+        this.startListeners();
+    }
 
-    // enqueue for processing
-    await this.depositQueue.add('processDeposit', { txHash: tx.hash });
-  }
+    private startListeners() {
+        const supportedChains = ['ETH', 'BSC', 'POLYGON'];
+        // For MVP, we might only enable one
+        this.evmListener.start('ETH');
+    }
 }

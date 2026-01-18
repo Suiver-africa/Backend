@@ -1,15 +1,15 @@
 import { Controller, Post, Get, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { PaymentService } from './payments/payments.service';
+import { PaymentsService } from './payments/payments.service';
 import { CryptoService } from './crypto/crypto.service';
 
 @ApiTags('Payment Engine')
 @Controller('api/payment')
 export class PaymentController {
   constructor(
-    private paymentService: PaymentService,
+    private paymentService: PaymentsService,
     private cryptoService: CryptoService
-  ) {}
+  ) { }
 
   @Get('crypto/prices')
   @ApiOperation({ summary: 'Get current cryptocurrency prices' })
