@@ -3,7 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { CryptoService } from './crypto.service';
 import { DepositController } from './deposit.controller';
-import { PrismaModule } from '../../prisma/prisma.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { RateService } from './rate.service';
 import { TransactionsModule } from '../transactions/transactions.module';
 

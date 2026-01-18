@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { DepositDto, WithdrawDto, SendDto, UpdateDto } from '../user/dto/wallet.dto';
 
 @Injectable()

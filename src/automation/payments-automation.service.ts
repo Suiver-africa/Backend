@@ -4,7 +4,7 @@ import { MockDepositWatcherService } from './mock-deposit-watcher.service';
 import { MoralisWatcherService } from './moralis-watcher.service';
 import { HeliusWatcherService } from './helius-watcher.service';
 import { BlockstreamWatcherService } from './blockstream-watcher.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { PaystackProvider } from '../payments/providers/paystack.provider';
 import { FlutterwaveProvider } from '../payments/providers/flutterwave.provider';

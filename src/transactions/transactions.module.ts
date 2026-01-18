@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { TransactionsController } from './transactions.controller';
-import { PrismaModule } from '../../prisma/prisma.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { CryptoModule } from '../crypto/crypto.module';
 
 @Module({

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
 import { MockDepositWatcherService } from './mock-deposit-watcher.service';
 import { MoralisWatcherService } from './moralis-watcher.service';
 import { HeliusWatcherService } from './helius-watcher.service';

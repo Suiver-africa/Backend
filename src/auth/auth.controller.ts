@@ -27,7 +27,7 @@ import {
 import { JwtAuthGuard } from './jwt-auth.guard';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('Auth')
 @Controller('auth')

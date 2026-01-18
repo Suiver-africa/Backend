@@ -1,4 +1,4 @@
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { CryptoService } from '../crypto/crypto.service';
 import { ConfigService } from '@nestjs/config';

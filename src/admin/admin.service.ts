@@ -1,6 +1,6 @@
 // src/admin/admin.service.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { TransactionStatus, TransactionType } from '@prisma/client';
 import { PaystackService } from '../payments/providers/paystack.service';
 

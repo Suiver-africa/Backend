@@ -1,22 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { PaymentController } from './app.controller';
+import { PaymentsService } from './payments/payments.service';
+import { CryptoService } from './crypto/crypto.service';
 
-describe('AppController', () => {
-  let appController: AppController;
+describe('PaymentController', () => {
+  let paymentController: PaymentController;
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [AppService],
+      controllers: [PaymentController],
+      providers: [
+        {
+          provide: PaymentsService,
+          useValue: {},
+        },
+        {
+          provide: CryptoService,
+          useValue: {},
+        },
+      ],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    paymentController = app.get<PaymentController>(PaymentController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
-    });
+  it('should be defined', () => {
+    expect(paymentController).toBeDefined();
   });
 });

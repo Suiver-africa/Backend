@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, LoginDto } from './dto/auth.dto';
 import {
   UpdateUserDto,

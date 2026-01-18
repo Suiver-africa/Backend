@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TransactionsService } from '../transactions/transactions.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import Web3 from 'web3';
 // import { ethers } from 'ethers'; // Alternative if Web3 causes issues, but sticking to Web3 as per existing deps
 

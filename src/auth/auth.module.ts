@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { OtpService } from '../otp/otp.service';
 import { UsersModule } from '../user/user.module';
 import { PassportModule } from '@nestjs/passport'; 
-import { PrismaModule } from '../../prisma/prisma.module'; 
+import { PrismaModule } from '../prisma/prisma.module'; 
 import { MailService } from '../otp/mail.service';
 import { JwtStrategy } from './jwt.strategy';
 
