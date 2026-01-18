@@ -16,6 +16,7 @@ model User {
   firstName        String?
   lastName         String?
   kycStatus        String?         @default("NOT_SUBMITTED")
+  age              Int?
   referralCode     String?         @unique
   referredById     String?
   biometricEnabled Boolean         @default(false)
@@ -33,25 +34,34 @@ model User {
   wallets          Wallet[]
   sentReferrals    Referral[] @relation("ReferralInviter")
   receivedReferral Referral[] @relation("ReferralInvitee")
+  transferRequests TransferRequest[]
 }
 
 model Wallet {
-  id                   Int           @id @default(autoincrement())
-  userId               String
-  balance              BigInt        @default(0)
-  currency             String
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @default(now()) @updatedAt
+  id            String  @id @default(cuid())
+  userId        String
+  cryptocurrency String // BTC, ETH, USDT, USDC, SOL, BNB, SUI, APT
+  address       String
+  privateKey    String // Encrypted
+  publicKey     String
+  balance       Decimal @default(0) @db.Decimal(20, 8)
+  nairaBalance  Decimal @default(0) @db.Decimal(15, 2)
+  isActive      Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
   sentTransactions     Transaction[] @relation("SentTransactions")
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
-  user                 User          @relation(fields: [userId], references: [id])
-
-  @@unique([userId, currency])
+  
+  @@map("wallets")
+  @@unique([userId, cryptocurrency])
 }
 
 model CryptoAddress {
   id        String   @id @default(cuid())
   userId    String
+  chain     String
   currency  String
   address   String   @unique
   createdAt DateTime @default(now())
@@ -75,17 +85,33 @@ model CryptoDeposit {
 model Transaction {
   id           Int             @id @default(autoincrement())
   userId       String
-  fromWalletId Int
-  toWalletId   Int
+  fromWalletId String?  // Changed to String and made optional
+  toWalletId   String?  // Changed to String and made optional
   type         TransactionType
   amount       BigInt
+  
   currency     String
   description  String?
-  status       String          @default("PENDING")
-  createdAt    DateTime        @default(now())
-  fromWallet   Wallet          @relation("SentTransactions", fields: [fromWalletId], references: [id])
-  toWallet     Wallet          @relation("ReceivedTransactions", fields: [toWalletId], references: [id])
+  
+  // Crypto-specific fields (from your payment engine requirements)
+  cryptocurrency   String?
+  cryptoAmount     Decimal?          @db.Decimal(20, 8)
+  nairaAmount      Decimal           @db.Decimal(15, 2)
+  exchangeRate     Decimal?          @db.Decimal(15, 8)
+  status           TransactionStatus @default(PENDING)
+  hash             String?           // Blockchain transaction hash
+  fromAddress      String?
+  toAddress        String?
+  metadata         Json?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  fromWallet   Wallet?          @relation("SentTransactions", fields: [fromWalletId], references: [id])
+  toWallet     Wallet?          @relation("ReceivedTransactions", fields: [toWalletId], references: [id])
   user         User            @relation("UserTransactions", fields: [userId], references: [id])
+  
+  @@map("transactions")
 }
 
 model Referral {
@@ -140,19 +166,52 @@ model Otp {
 model PaymentLink {
   id         Int      @id @default(autoincrement())
   userId     String
-  amount     BigInt?
+  title       String
+  description String?
+  amount      Decimal  @db.Decimal(15, 2)
+  currency    String   @default("NGN")
+  isActive    Boolean  @default(true)
+  expiresAt   DateTime?
   openAmount Boolean  @default(false)
   code       String   @unique
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id])
+  
+  @@map("payment_links")
 }
 
-
+model TransferRequest {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String?
+  toEmail     String?
+  toPhone     String?
+  amount      Decimal  @db.Decimal(15, 2)
+  message     String?
+  status      String   @default("pending") // pending, completed, cancelled
+  createdAt   DateTime @default(now())
+  
+  fromUser User @relation(fields: [fromUserId], references: [id])
+  
+  @@map("transfer_requests")
+}
 
 enum TransactionType {
   DEPOSIT
+  CRYPTO_TO_NAIRA
+  NAIRA_TO_CRYPTO
   WITHDRAW
-  SEND
+  TRANSFER
   RECEIVE
+  BILL_PAYMENT
   REQUEST
+  PAYMENT_LINK
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
 }

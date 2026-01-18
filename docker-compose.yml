@@ -24,6 +24,8 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_TOKEN_EXPIRY: ${JWT_ACCESS_TOKEN_EXPIRY}
       USD_TO_NGN_RATE: ${USD_TO_NGN_RATE}
+      SOLANA_RPC_URL: https://api.mainnet-beta.solana.com
+      ETH_RPC_URL: https://mainnet.infura.io/v3/YOUR_PROJECT_ID
     depends_on:
       - postgres
     command: npm run start:dev
@@ -31,9 +33,4 @@ services:
 volumes:
   postgres_data:
 
-      networks:
-      - backend
-
-networks:
-  backend:
-    driver: bridge
+      
