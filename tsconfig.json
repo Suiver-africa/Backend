@@ -25,6 +25,6 @@
     "node_modules",
     "dist",
     "test",
-    "prisma"
+    "prisma/seed.ts"
   ]
 }

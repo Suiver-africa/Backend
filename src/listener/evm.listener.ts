@@ -17,12 +17,19 @@ export class EvmListener {
         private readonly transactionsService: TransactionsService,
         private readonly prisma: PrismaService,
     ) {
-        const rpcUrl = this.configService.get('ETH_RPC_URL') || 'https://eth-mainnet.g.alchemy.com/v2/your-api-key';
+        const rpcUrl = this.configService.get('ETH_RPC_URL');
         this.web3 = new Web3(rpcUrl);
     }
 
     async start(chain: string) {
         if (this.isRunning) return;
+
+        const rpcUrl = this.configService.get('ETH_RPC_URL');
+        if (!rpcUrl || rpcUrl.includes('your-api-key')) {
+            this.logger.warn(`Skipping EVM Listener for ${chain}: ETH_RPC_URL is not configured or still has placeholder.`);
+            return;
+        }
+
         this.isRunning = true;
         this.logger.log(`Starting EVM Listener for ${chain}...`);
 
