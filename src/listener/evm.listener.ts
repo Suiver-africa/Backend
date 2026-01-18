@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TransactionsService } from '../transactions/transactions.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import Web3 from 'web3';
 // import { ethers } from 'ethers'; // Alternative if Web3 causes issues, but sticking to Web3 as per existing deps
 
@@ -14,9 +15,10 @@ export class EvmListener {
     constructor(
         private readonly configService: ConfigService,
         private readonly transactionsService: TransactionsService,
+        private readonly prisma: PrismaService,
     ) {
-        // Initialize with a default provider, will be overridden in start()
-        this.web3 = new Web3(this.configService.get('ETH_RPC_URL') || 'https://eth-sepolia.g.alchemy.com/v2/WHiSvVgg27GtWI0jWvAzk');
+        const rpcUrl = this.configService.get('ETH_RPC_URL') || 'https://eth-mainnet.g.alchemy.com/v2/your-api-key';
+        this.web3 = new Web3(rpcUrl);
     }
 
     async start(chain: string) {
@@ -34,17 +36,60 @@ export class EvmListener {
     }
 
     private async pollBlocks() {
-        // Mock simulation loop for MVP
-        // effectively "listening"
+        let lastProcessedBlock = await this.web3.eth.getBlockNumber();
+
         setInterval(async () => {
             try {
-                // Logic to fetch latest block and process txs
-                // const block = await this.web3.eth.getBlock('latest', true);
-                // this.processBlock(block);
+                const currentBlock = await this.web3.eth.getBlockNumber();
+                if (currentBlock > lastProcessedBlock) {
+                    for (let blockNum = lastProcessedBlock + BigInt(1); blockNum <= currentBlock; blockNum++) {
+                        const block = await this.web3.eth.getBlock(blockNum, true);
+                        if (block && block.transactions) {
+                            await this.processTransactions(block.transactions as any[]);
+                        }
+                    }
+                    lastProcessedBlock = currentBlock;
+                }
             } catch (e) {
                 this.logger.error('Error polling blocks', e);
             }
         }, this.pollInterval);
+    }
+
+    private async processTransactions(transactions: any[]) {
+        // 1. Get all watched addresses from DB
+        const wallets = await this.prisma.wallet.findMany({
+            where: { isActive: true, currency: { not: 'NGN' } },
+            select: { address: true, currency: true }
+        });
+
+        const watchedAddresses = new Set(
+            wallets
+                .filter(w => w.address !== null)
+                .map(w => w.address!.toLowerCase())
+        );
+
+        for (const tx of transactions) {
+            if (tx.to && watchedAddresses.has(tx.to.toLowerCase())) {
+                const wallet = wallets.find(w => w.address && w.address.toLowerCase() === tx.to.toLowerCase());
+
+                if (!wallet) {
+                    this.logger.warn(`Wallet not found for address ${tx.to} despite being in watched list`);
+                    continue;
+                }
+                const amount = Number(this.web3.utils.fromWei(tx.value, 'ether')); // Adjust based on token decimal if not ETH
+
+                this.logger.log(`Detected incoming transaction: ${tx.hash} for ${tx.to}`);
+
+                await this.transactionsService.processDeposit(
+                    tx.to,
+                    amount,
+                    wallet.currency,
+                    tx.hash,
+                    tx.from
+                );
+            }
+        }
     }
 
     // Exposed for Manual Testing / Simulation

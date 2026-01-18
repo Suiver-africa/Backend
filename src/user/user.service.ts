@@ -53,9 +53,7 @@ export class UsersService {
           data: {
             userId: user.id,
             balance: 0,
-            cryptocurrency: cur,
-            address: `pending_${uuidv4().split('-')[0]}`,
-            publicKey: `pending_${uuidv4().split('-')[0]}`
+            currency: cur,
           },
         });
         // create a deposit address for crypto currencies (not for NGN)

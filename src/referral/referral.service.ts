@@ -161,9 +161,9 @@ export class ReferralService {
         // Find referrer's NGN wallet
         const referrerWallet = await tx.wallet.findUnique({
           where: {
-            userId_cryptocurrency: {
+            userId_currency: {
               userId: referrerId,
-              cryptocurrency: 'NGN',
+              currency: 'NGN',
             },
           },
         });

@@ -429,9 +429,9 @@ export class AuthService {
       // Find referrer's NGN wallet
       const referrerWallet = await this.prisma.wallet.findUnique({
         where: {
-          userId_cryptocurrency: {
+          userId_currency: {
             userId: referrerId,
-            cryptocurrency: 'NGN',
+            currency: 'NGN',
           },
         },
       });

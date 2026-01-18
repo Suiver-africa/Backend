@@ -11,7 +11,7 @@ export class TransactionsService {
   ) { }
 
   private async getWallet(userId: string, currency = 'NGN') {
-    const wallet = await this.prisma.wallet.findFirst({ where: { userId, cryptocurrency: currency } });
+    const wallet = await this.prisma.wallet.findFirst({ where: { userId, currency: currency } });
     if (!wallet) throw new NotFoundException('Wallet not found for currency ' + currency);
     return wallet;
   }
@@ -82,7 +82,7 @@ export class TransactionsService {
           nairaAmount: currency === 'NGN' ? amount : 0, // Required field
 
           description: 'Deposit',
-          currency: wallet.cryptocurrency,
+          currency: wallet.currency,
           status: 'COMPLETED', // Enum is COMPLETED, not SUCCESS? Schema says TransactionStatus (PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED)
           // Original code said 'SUCCESS'. I need to change to 'COMPLETED'.
 
@@ -134,7 +134,7 @@ export class TransactionsService {
           amount: BigInt(Math.floor(amount)),
           nairaAmount: currency === 'NGN' ? amount : 0,
           description: `Sent to ${recipient.tag}`,
-          currency: senderWallet.cryptocurrency,
+          currency: senderWallet.currency,
           status: 'COMPLETED',
           fromWalletId: senderWallet.id,
           toWalletId: recipientWallet.id,
@@ -147,7 +147,7 @@ export class TransactionsService {
           amount: BigInt(Math.floor(amount)),
           nairaAmount: currency === 'NGN' ? amount : 0,
           description: `Received from ${userId}`,
-          currency: recipientWallet.cryptocurrency,
+          currency: recipientWallet.currency,
           status: 'COMPLETED',
           fromWalletId: senderWallet.id,
           toWalletId: recipientWallet.id,
@@ -158,7 +158,7 @@ export class TransactionsService {
     return { success: true };
   }
 
-  async withdraw(userId: string, amount: number, destinationAccount: string, currency = 'NGN') {
+  async withdraw(userId: string, amount: number, accountNumber: string, bankCode: string, accountName: string, currency = 'NGN') {
     const wallet = await this.getWallet(userId, currency);
 
     // Check Balance
@@ -194,11 +194,17 @@ export class TransactionsService {
           type: 'WITHDRAW',
           amount: BigInt(Math.floor(amount)),
           nairaAmount: currency === 'NGN' ? amount : 0,
-          description: `Withdraw to ${destinationAccount}`,
-          currency: wallet.cryptocurrency,
+          description: `Withdraw to ${accountNumber}`,
+          currency: wallet.currency,
           status: 'PENDING',
           fromWalletId: wallet.id,
           toWalletId: wallet.id,
+          metadata: {
+            accountNumber,
+            bankCode,
+            accountName,
+            method: 'Bank Transfer'
+          }
         },
       })
     ]);
@@ -256,7 +262,7 @@ export class TransactionsService {
     const SYSTEM_FLOAT_USER_ID = 'SYSTEM_FLOAT'; // Ideally from Config
     // Ensure System Wallet Exists (Simplification for MVP: We might just create it if missing)
     let systemWallet = await this.prisma.wallet.findFirst({
-      where: { userId: SYSTEM_FLOAT_USER_ID, cryptocurrency: 'NGN' }
+      where: { userId: SYSTEM_FLOAT_USER_ID, currency: 'NGN' }
     });
 
     if (!systemWallet) {
@@ -277,9 +283,7 @@ export class TransactionsService {
       systemWallet = await this.prisma.wallet.create({
         data: {
           userId: systemUser.id,
-          cryptocurrency: 'NGN',
-          address: 'internal_system_float',
-          publicKey: 'internal_system_float',
+          currency: 'NGN',
           balance: 1000000000, // Pre-funded Float for MVP simulation
         }
       });

@@ -14,9 +14,9 @@ export class WalletService {
   async findByUserId(userId: string, currency: string = 'NGN') {
     const wallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId,
-          cryptocurrency: currency
+          currency: currency
         }
       },
       include: {
@@ -32,17 +32,17 @@ export class WalletService {
   async getBalance(userId: string, currency: string = 'NGN') {
     const wallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId,
-          cryptocurrency: currency
+          currency: currency
         }
       },
-      select: { balance: true, cryptocurrency: true },
+      select: { balance: true, currency: true },
     });
 
     if (!wallet) throw new NotFoundException('Wallet not found');
 
-    return { balance: Number(wallet.balance), currency: wallet.cryptocurrency };
+    return { balance: Number(wallet.balance), currency: wallet.currency };
   }
 
   // Alternative: Get all wallets for a user
@@ -68,9 +68,9 @@ export class WalletService {
 
     const wallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId,
-          cryptocurrency: currency
+          currency: currency
         }
       }
     });
@@ -88,9 +88,9 @@ export class WalletService {
     const result = await this.prisma.$transaction(async (tx) => {
       const updatedWallet = await tx.wallet.update({
         where: {
-          userId_cryptocurrency: {
+          userId_currency: {
             userId,
-            cryptocurrency: currency
+            currency: currency
           }
         },
         data: updateData,
@@ -104,7 +104,7 @@ export class WalletService {
           type: 'DEPOSIT',
           amount: BigInt(Math.floor(dto.amount)),
           nairaAmount: currency === 'NGN' ? dto.amount : 0,
-          currency: wallet.cryptocurrency,
+          currency: wallet.currency,
           description: dto.description || 'Wallet deposit',
           status: 'COMPLETED',
         },
@@ -122,9 +122,9 @@ export class WalletService {
 
     const wallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId,
-          cryptocurrency: currency
+          currency: currency
         }
       }
     });
@@ -145,9 +145,9 @@ export class WalletService {
     const result = await this.prisma.$transaction(async (tx) => {
       const updatedWallet = await tx.wallet.update({
         where: {
-          userId_cryptocurrency: {
+          userId_currency: {
             userId,
-            cryptocurrency: currency
+            currency: currency
           }
         },
         data: updateData,
@@ -161,7 +161,7 @@ export class WalletService {
           type: 'WITHDRAW',
           amount: BigInt(Math.floor(amount)),
           nairaAmount: currency === 'NGN' ? amount : 0,
-          currency: dto.currency || wallet.cryptocurrency,
+          currency: dto.currency || wallet.currency,
           description: dto.destinationAccount || 'Wallet withdrawal',
           status: 'COMPLETED',
         },
@@ -183,18 +183,18 @@ export class WalletService {
 
     const senderWallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId,
-          cryptocurrency: currency
+          currency: currency
         }
       }
     });
 
     const recipientWallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId: dto.recipientId,
-          cryptocurrency: currency
+          currency: currency
         }
       }
     });
@@ -212,9 +212,9 @@ export class WalletService {
     const result = await this.prisma.$transaction(async (tx) => {
       const updatedSender = await tx.wallet.update({
         where: {
-          userId_cryptocurrency: {
+          userId_currency: {
             userId,
-            cryptocurrency: currency
+            currency: currency
           }
         },
         data: senderUpdate,
@@ -222,9 +222,9 @@ export class WalletService {
 
       await tx.wallet.update({
         where: {
-          userId_cryptocurrency: {
+          userId_currency: {
             userId: dto.recipientId,
-            cryptocurrency: currency
+            currency: currency
           }
         },
         data: recipientUpdate,
@@ -254,9 +254,9 @@ export class WalletService {
   async update(userId: string, currency: string, dto: UpdateDto) {
     const wallet = await this.prisma.wallet.update({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId,
-          cryptocurrency: currency
+          currency: currency
         }
       },
       data: dto as any, // Cast to any to bypass strict type check for now if partial input causes issues
@@ -273,9 +273,9 @@ export class WalletService {
       // Get transactions for a specific currency wallet
       const wallet = await this.prisma.wallet.findUnique({
         where: {
-          userId_cryptocurrency: {
+          userId_currency: {
             userId,
-            cryptocurrency: currency
+            currency: currency
           }
         }
       });
@@ -320,9 +320,9 @@ export class WalletService {
   async createWallet(userId: string, currency: string = 'NGN') {
     const existingWallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId,
-          cryptocurrency: currency
+          currency: currency
         }
       }
     });
@@ -334,26 +334,7 @@ export class WalletService {
     const wallet = await this.prisma.wallet.create({
       data: {
         userId,
-        cryptocurrency: currency,
-        address: 'temp_address', // Added temporary address to satisfy non-null constraint? Schema says address is String (not optional)
-        // Note: Code didn't have address before.
-        // Schema: address String.
-        // I must provide address.
-        // For NGN wallet, maybe 'NGN_WALLET'?
-        // The previous code didn't provide address! Steps 84 output lines 310-314:
-        /*
-          data: {
-            userId,
-            currency,
-            balance: BigInt(0),
-          },
-        */
-        // That implies previous code was failing runtime or Schema optional?
-        // Step 20 Schema: `address String`. Not optional.
-        // So `createWallet` was also broken or schema changed.
-        // I'll add a placeholder address for NGN wallets.
-
-        publicKey: 'temp_public', // Also required
+        currency: currency,
         balance: 0,
         nairaBalance: 0,
       },

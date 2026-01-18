@@ -7,7 +7,7 @@ import { CryptoService } from './crypto/crypto.service';
 @Controller('api/payment')
 export class PaymentController {
   constructor(
-    private paymentService: PaymentService,
+    private paymentService: PaymentsService,
     private cryptoService: CryptoService
   ) { }
 

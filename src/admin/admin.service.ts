@@ -2,10 +2,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionStatus, TransactionType } from '@prisma/client';
+import { PaystackService } from '../payments/providers/paystack.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private paystackService: PaystackService
+  ) { }
 
   // Dashboard Stats
   async getStats(period: string) {
@@ -273,15 +277,42 @@ export class AdminService {
   async approvePayout(id: string) {
     const payoutId = parseInt(id.replace('PO', ''));
     
+    // 1. Fetch transaction details
+    const transaction = await this.prisma.transaction.findUnique({
+      where: { id: payoutId },
+      include: { user: true }
+    });
+
+    if (!transaction) throw new Error('Transaction not found');
+    if (transaction.status !== TransactionStatus.PENDING && transaction.status !== TransactionStatus.PROCESSING) {
+      throw new Error('Payout already processed or cancelled');
+    }
+
+    // 2. Trigger Real Paystack Payout
+    const metadata = (transaction.metadata as any) || {};
+    const payoutResult = await this.paystackService.triggerPayout({
+      account_number: metadata.accountNumber,
+      bank_code: metadata.bankCode,
+      amount: Number(transaction.nairaAmount) * 100, // Paystack uses kobo
+      account_name: metadata.accountName || `${transaction.user.firstName || ''} ${transaction.user.lastName || ''}`.trim(),
+      reference: `PO-${transaction.id}-${Date.now()}`
+    });
+
+    if (!payoutResult.status) {
+      throw new Error(`Paystack payout failed: ${payoutResult.message}`);
+    }
+
+    // 3. Update transaction status
     await this.prisma.transaction.update({
       where: { id: payoutId },
       data: { 
         status: TransactionStatus.COMPLETED,
+        hash: payoutResult.data.reference,
         updatedAt: new Date()
       }
     });
 
-    return { success: true, message: 'Payout approved' };
+    return { success: true, message: 'Payout approved and triggered via Paystack' };
   }
 
   // Reject Payout

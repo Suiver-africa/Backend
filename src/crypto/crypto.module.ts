@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { CryptoService } from './crypto.service';
@@ -15,7 +15,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
       maxRedirects: 3,
     }),
     ConfigModule,
-    TransactionsModule,
+    forwardRef(() => TransactionsModule),
   ],
   providers: [CryptoService, RateService],
   controllers: [DepositController],

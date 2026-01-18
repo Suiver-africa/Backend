@@ -121,9 +121,9 @@ export class PaymentLinksService {
     // Check if user has a wallet for the specific currency
     const wallet = await this.prisma.wallet.findUnique({
       where: {
-        userId_cryptocurrency: {
+        userId_currency: {
           userId,
-          cryptocurrency: currency,
+          currency: currency,
         },
       },
     });
