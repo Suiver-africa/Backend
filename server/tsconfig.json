@@ -11,7 +11,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "rootDir": "src",
+    "rootDir": "server/src",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -24,7 +24,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "test",
-    "prisma"
+    "server/test",
+    "server/prisma"
   ]
 }
