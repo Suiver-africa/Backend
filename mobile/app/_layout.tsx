@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import "../app/global.css";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AuthProvider } from "@/context/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,13 +42,16 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(root)" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </SafeAreaProvider>
+    <AuthProvider>
+      <SafeAreaProvider>
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(root)" options={{ headerShown: false }} />
+          <Stack.Screen name="deposit" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </SafeAreaProvider>
+    </AuthProvider>
   );
 }

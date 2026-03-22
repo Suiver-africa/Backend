@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { router } from "expo-router";
 import {
   View,
   Text,
@@ -92,7 +93,10 @@ const SignUp = ({ onBack, onSwitchForm }: SignUpProps) => {
         ...loginForm,
       };
       console.log("Sign up with:", signupData);
-   
+      router.push({
+        pathname: "/(auth)/verifyOtp",
+        params: { email: loginForm.email },
+      });
     }
   };
 
@@ -103,7 +107,7 @@ const SignUp = ({ onBack, onSwitchForm }: SignUpProps) => {
           className="flex-row items-center mb-4"
           onPress={onBack}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="chevron-back" size={24} color="#000" />
           <Text className="ml-2 text-lg font-montserrat-semibold">Back</Text>
         </TouchableOpacity>
 
@@ -232,7 +236,7 @@ const SignUp = ({ onBack, onSwitchForm }: SignUpProps) => {
           className="flex-row items-center mb-4"
           onPress={goToPreviousStep}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="chevron-back" size={24} color="#000" />
           <Text className="ml-2 text-lg font-montserrat-semibold">Back</Text>
         </TouchableOpacity>
 

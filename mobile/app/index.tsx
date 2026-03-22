@@ -1,30 +1,36 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import Splash from "../components/Splash-screen";
+import { useAuth } from "@/context/AuthContext";
 
 const Index = () => {
   const [showSplash, setShowSplash] = useState(true);
   const router = useRouter();
-
-  console.log("Index rendering, showSplash:", showSplash);
+  const { isLoggedIn, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!showSplash) {
-      console.log("Navigating to /welcome");
-      router.replace("/onboarding");
+    // Wait until both splash is done AND auth state has loaded
+    if (!showSplash && !isLoading) {
+      if (isLoggedIn) {
+        // Already authenticated → go to Welcome Back Pin screen
+        router.replace("/(auth)/welcomeBackPin");
+      } else {
+        // Not authenticated → go to onboarding
+        router.replace("/(auth)/onboarding");
+      }
     }
-  }, [showSplash]);
+  }, [showSplash, isLoading, isLoggedIn]);
 
   if (showSplash) {
     return (
       <Splash
         onFinish={() => {
-          console.log("Custom splash finished");
           setShowSplash(false);
         }}
       />
     );
   }
+
   return null;
 };
 

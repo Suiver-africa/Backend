@@ -7,6 +7,8 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useAuth } from "@/context/AuthContext";
 
 interface SignInProps {
   onBack: () => void;
@@ -14,6 +16,7 @@ interface SignInProps {
 }
 
 const SignIn = ({ onBack, onSwitchForm }: SignInProps) => {
+  const { savedPin } = useAuth();
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
@@ -43,10 +46,16 @@ const SignIn = ({ onBack, onSwitchForm }: SignInProps) => {
     if (validateForm()) {
       setIsLoading(true);
       try {
+        // TODO: replace with your real API call and use the returned token
         console.log("Sign in with:", loginForm);
-        // Add your signin API call here
 
-
+        // If user already has a PIN set → go straight to welcomeBackPin
+        // Otherwise → go to createPin to set one up for the first time
+        if (savedPin) {
+          router.replace("/(auth)/welcomeBackPin");
+        } else {
+          router.push("/(auth)/createPin");
+        }
       } catch (error) {
         console.error("Sign in error:", error);
         setErrors({ general: "Login failed. Please try again." });

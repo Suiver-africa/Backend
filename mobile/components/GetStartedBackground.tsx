@@ -23,23 +23,6 @@ const Background = ({ children }: { children: React.ReactNode }) => {
         </View>
       </View>
 
-      <View className="absolute top-20 w-full h-full  space-y-4">
-        <View className="w-10 h-10 right-24 top-5 absolute ">
-          <Image
-            source={require("../assets/images/shield.png")}
-            resizeMode="contain"
-          />
-        </View>
-        <View className="w-10 h-10  absolute top-24 left-5 ml-6 ">
-          <Image source={require("../assets/images/Solana.png")} />
-        </View>
-        <View className="w-10 h-10 absolute top-1/2 left-[40%] ">
-          <Image
-            source={require("../assets/images/Bitcoin.png")}
-            resizeMode="contain"
-          />
-        </View>
-      </View>
       {children}
     </LinearGradient>
   );
