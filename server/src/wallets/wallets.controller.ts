@@ -27,13 +27,19 @@ export class WalletController {
 
   @Post('me/deposit')
   @ApiOperation({ summary: 'Deposit funds into current user wallet' })
-  deposit(@Req() req: Request & { user: { id: string } }, @Body() dto: DepositDto) {
+  deposit(
+    @Req() req: Request & { user: { id: string } },
+    @Body() dto: DepositDto,
+  ) {
     return this.walletService.deposit(req.user.id, dto);
   }
 
   @Post('me/withdraw')
   @ApiOperation({ summary: 'Withdraw funds from current user wallet' })
-  withdraw(@Req() req: Request & { user: { id: string } }, @Body() dto: WithdrawDto) {
+  withdraw(
+    @Req() req: Request & { user: { id: string } },
+    @Body() dto: WithdrawDto,
+  ) {
     return this.walletService.withdraw(req.user.id, dto);
   }
 
@@ -42,9 +48,8 @@ export class WalletController {
   send(@Req() req: Request & { user: { id: string } }, @Body() dto: SendDto) {
     return this.walletService.send(req.user.id, dto);
   }
-  
 
-   // Optional: Admin/lookup
+  // Optional: Admin/lookup
   @Get(':userId/balance')
   @ApiOperation({ summary: 'Get wallet balance by userId (admin)' })
   getBalance(@Param('userId') userId: string) {

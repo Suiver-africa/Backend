@@ -17,8 +17,10 @@ import {
 } from '@nestjs/swagger';
 import { ReferralService } from './referral.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ValidateReferralCodeDto, ReferralStatsResponseDto } from './referral.dto';
-
+import {
+  ValidateReferralCodeDto,
+  ReferralStatsResponseDto,
+} from './referral.dto';
 
 @ApiTags('Referrals')
 @Controller('referrals')
@@ -28,8 +30,8 @@ export class ReferralController {
   // ─── Public Endpoints ──────────────────────────────────────────
 
   @ApiOperation({ summary: 'Validate referral code' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Referral code validation result',
     schema: {
       properties: {
@@ -39,11 +41,11 @@ export class ReferralController {
           properties: {
             firstName: { type: 'string' },
             lastName: { type: 'string' },
-            email: { type: 'string' }
-          }
-        }
-      }
-    }
+            email: { type: 'string' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'Invalid referral code' })
   @HttpCode(HttpStatus.OK)
@@ -55,10 +57,10 @@ export class ReferralController {
   // ─── Protected Endpoints ───────────────────────────────────────
 
   @ApiOperation({ summary: 'Get my referral statistics' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'User referral statistics',
-    type: ReferralStatsResponseDto 
+    type: ReferralStatsResponseDto,
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -68,15 +70,15 @@ export class ReferralController {
   }
 
   @ApiOperation({ summary: 'Get my referral code' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'User referral code',
     schema: {
       properties: {
         referralCode: { type: 'string' },
-        referralLink: { type: 'string' }
-      }
-    }
+        referralLink: { type: 'string' },
+      },
+    },
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -86,8 +88,8 @@ export class ReferralController {
   }
 
   @ApiOperation({ summary: 'Get list of my referrals' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'List of users referred by current user',
     schema: {
       type: 'array',
@@ -98,10 +100,10 @@ export class ReferralController {
           firstName: { type: 'string' },
           lastName: { type: 'string' },
           createdAt: { type: 'string', format: 'date-time' },
-          status: { type: 'string' }
-        }
-      }
-    }
+          status: { type: 'string' },
+        },
+      },
+    },
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -111,8 +113,8 @@ export class ReferralController {
   }
 
   @ApiOperation({ summary: 'Get referral leaderboard' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Top referrers leaderboard',
     schema: {
       type: 'array',
@@ -122,10 +124,10 @@ export class ReferralController {
           firstName: { type: 'string' },
           lastName: { type: 'string' },
           totalReferrals: { type: 'number' },
-          totalRewards: { type: 'number' }
-        }
-      }
-    }
+          totalRewards: { type: 'number' },
+        },
+      },
+    },
   })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -135,15 +137,15 @@ export class ReferralController {
   }
 
   @ApiOperation({ summary: 'Generate new referral code (if allowed)' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'New referral code generated',
     schema: {
       properties: {
         referralCode: { type: 'string' },
-        message: { type: 'string' }
-      }
-    }
+        message: { type: 'string' },
+      },
+    },
   })
   @ApiResponse({ status: 400, description: 'Cannot generate new code' })
   @ApiBearerAuth()

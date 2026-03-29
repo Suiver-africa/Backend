@@ -1,5 +1,10 @@
 // src/admin/guards/admin.guard.ts
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -16,12 +21,12 @@ export class AdminGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token);
-      
+
       // Check if user is admin (you can add an 'isAdmin' field to User model)
       if (payload.role !== 'admin') {
         throw new UnauthorizedException('Not authorized as admin');
       }
-      
+
       request.user = payload;
       return true;
     } catch {

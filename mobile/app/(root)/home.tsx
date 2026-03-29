@@ -1,309 +1,172 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  StyleSheet,
-  Dimensions,
-  Image,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
+import React, { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { colors, typography } from '@/theme/tokens';
+import { depositAssets, sampleActivity } from '@/lib/mock-data';
 
-const { width } = Dimensions.get("window");
-
-// ── Brand tokens ──
-const DEEP   = "#1C0D2E";   // Top section deep plum background
-const SHEET  = "#11051F";   // Curved sheet dark background
-const CARD   = "#1A0A2E";   // Cards on sheet
-const TEAL   = "#00E5A0";   // Growth / positive accept
-const PURPLE = "#A78BFA";   // Lavender accent
-const PALE   = "#EAE2EC";   // Alert capsule / Refer pill background (from current)
-const WHITE  = "#FFFFFF";
-const MUTED  = "#B0A2C3";   // Muted text on dark
-
-const Home = () => {
-  const [showBalance, setShowBalance] = useState(true);
+export default function HomeScreen() {
+  const [hideBalance, setHideBalance] = useState(false);
   const router = useRouter();
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <View style={styles.profilePill}>
+            <View style={styles.avatarMini}><Text style={styles.avatarMiniText}>S</Text></View>
+            <Text style={styles.handle}>@suiveruser</Text>
+          </View>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="notifications-outline" size={18} color={colors.white} />
+          </TouchableOpacity>
+        </View>
 
-      {/* ─── TOP SECTION ─── */}
-      <View style={styles.topContainer}>
-        <SafeAreaView>
-          {/* Header row */}
-          <View style={styles.header}>
-            <View style={styles.profileBox}>
-              <View style={styles.profileIconCircle}>
-                <Ionicons name="person" size={12} color={TEAL} />
-              </View>
-              <Text style={styles.profileTag}>@zen</Text>
-            </View>
-            <TouchableOpacity style={styles.headerIcon}>
-              <Ionicons name="notifications-outline" size={20} color={MUTED} />
+        <Text style={styles.balanceLabel}>Total Balance</Text>
+        <View style={styles.balanceRow}>
+          <Text style={styles.balanceValue}>{hideBalance ? '••••••••' : '₦700,000.00'}</Text>
+          <TouchableOpacity onPress={() => setHideBalance((v) => !v)}>
+            <Ionicons name={hideBalance ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/deposit')}>
+            <Text style={styles.primaryBtnText}>Deposit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.push('/(root)/card')}>
+            <Text style={styles.secondaryBtnText}>Swap</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          <View style={styles.notice}>
+            <Ionicons name="notifications" size={14} color={colors.white} />
+            <Text style={styles.noticeText} numberOfLines={1}>Rate alert: USDT hit ₦1,582.40</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.grid}>
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/airtime')}>
+              <View style={styles.gridIcon}><Ionicons name="phone-portrait-outline" size={20} color={colors.white} /></View>
+              <Text style={styles.gridLabel}>Airtime</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/data')}>
+              <View style={styles.gridIcon}><Ionicons name="wifi-outline" size={20} color={colors.white} /></View>
+              <Text style={styles.gridLabel}>Data</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/tv-bills')}>
+              <View style={styles.gridIcon}><Ionicons name="tv-outline" size={20} color={colors.white} /></View>
+              <Text style={styles.gridLabel}>TV Bills</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.gridItem} onPress={() => router.push('/flights')}>
+              <View style={styles.gridIcon}><Ionicons name="airplane-outline" size={20} color={colors.white} /></View>
+              <Text style={styles.gridLabel}>Flights</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Balance Section */}
-          <View style={styles.balanceSection}>
-            <Text style={styles.balanceLabel}>Total Balance</Text>
-            <View style={styles.balanceRow}>
-              <Text style={styles.mainBalance}>
-                {showBalance ? "₦700,000.00" : "••••••••"}
-              </Text>
-              <TouchableOpacity onPress={() => setShowBalance(!showBalance)} style={styles.eyeBtn}>
-                <Ionicons
-                  name={showBalance ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color={PURPLE}
-                />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.growthTag}>+2.4% last 24h</Text>
-          </View>
-
-          {/* CTA Buttons */}
-          <View style={styles.mainActions}>
-            <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push("/deposit")}>
-              <Ionicons name="add" size={20} color={DEEP} />
-              <Text style={styles.btnPrimaryText}>Deposit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnSecondary}>
-              <Text style={styles.btnSecondaryText}>Transfer</Text>
-              <Ionicons name="arrow-forward" size={16} color={WHITE} />
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </View>
-
-      {/* ─── DARK CURVED SHEET ─── */}
-      <View style={styles.sheet}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 120 }}
-        >
-          <View style={styles.sheetHandle} />
-
-          {/* ── Kept: Alert Pill (Pale) ── */}
-          <View style={styles.alertPillWrapper}>
-            <View style={styles.alertPill}>
-              <Ionicons name="notifications" size={16} color="#000" />
-              <Text style={styles.alertText} numberOfLines={1}>
-                Your Solana just dropped, 1.05 Sol~(₦ 205,496..
-              </Text>
-            </View>
-          </View>
-
-          {/* ── Quick Actions Grid (Solid Circles) ── */}
-          <View style={styles.gridSection}>
-            {[
-              { icon: "phone-portrait-outline", label: "Top-up" },
-              { icon: "wifi-outline",           label: "Data" },
-              { icon: "tv-outline",             label: "Cable" },
-              { icon: "grid-outline",           label: "More" },
-            ].map((item, i) => (
-              <TouchableOpacity key={i} style={styles.actionItem}>
-                <View style={styles.actionIconCircle}>
-                  <Ionicons name={item.icon as any} size={24} color={WHITE} />
-                </View>
-                <Text style={styles.actionLabel}>{item.label}</Text>
+          <Text style={styles.sectionTitle}>Assets</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 16 }}>
+            {depositAssets.slice(0, 4).map((asset) => (
+              <TouchableOpacity key={asset.id} style={styles.assetChip} onPress={() => router.push('/deposit')}>
+                <Text style={styles.assetChipText}>{asset.symbol} ₦{asset.rateNgn}</Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
 
-
-
-          <Text style={styles.sectionTitle}>Featured Services</Text>
-
-          {/* Old layout Banner style for Auto conversion */}
-          <TouchableOpacity style={styles.detailedBanner} activeOpacity={0.82}>
-            <View style={styles.bannerContent}>
-              <Text style={styles.bannerTitle}>Auto conversion on deposits</Text>
-              <Text style={styles.bannerSub}>Swap Crypto to Naira instantly.</Text>
-            </View>
-            <View style={styles.bannerIconArea}>
-              <View style={styles.iconBg}>
-                <Ionicons name="swap-horizontal" size={20} color={WHITE} />
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          {/* ── Kept: Refer a friend pale pill banner ── */}
-          <View style={{ marginTop: 24 }}>
-            <TouchableOpacity style={styles.referBanner} activeOpacity={0.8}>
-              <Image
-                source={{ uri: "https://img.icons8.com/3d-fluency/94/gift.png" }} 
-                style={styles.giftImage}
-              />
-              <Text style={styles.referText}>Refer a friend and earn</Text>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <TouchableOpacity onPress={() => router.push('/(root)/activity')}>
+              <Text style={styles.linkText}>View all</Text>
             </TouchableOpacity>
           </View>
 
+          {sampleActivity.map((item) => (
+            <View key={item.id} style={styles.txRow}>
+              <View>
+                <Text style={styles.txLabel}>{item.label}</Text>
+                <Text style={styles.txTime}>{item.at}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={[styles.txAmount, item.amount.startsWith('+') ? { color: colors.teal } : { color: colors.white }]}>{item.amount}</Text>
+                <View style={[styles.statusChip, item.status === 'pending' ? styles.statusPending : styles.statusDone]}>
+                  <Text style={styles.statusChipText}>{item.status}</Text>
+                </View>
+              </View>
+            </View>
+          ))}
         </ScrollView>
       </View>
-    </View>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: DEEP },
-
-  topContainer: {
-    backgroundColor: DEEP,
-    paddingBottom: 44,
-    paddingTop: 10,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    alignItems: "center",
-  },
-  profileBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    padding: 6,
-    paddingRight: 14,
-    borderRadius: 30,
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 16 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 },
+  profilePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: colors.border,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
-  profileIconCircle: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: "rgba(0, 229, 160, 0.15)",
-    alignItems: "center", justifyContent: "center",
-    marginRight: 8,
+  avatarMini: { width: 24, height: 24, borderRadius: 999, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
+  avatarMiniText: { color: colors.white, fontFamily: 'Montserrat-Bold', fontSize: 11 },
+  handle: { color: colors.white, fontFamily: 'Montserrat-Medium', fontSize: 12 },
+  iconButton: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  balanceLabel: { color: colors.textSecondary, fontFamily: 'Montserrat-Medium', fontSize: 12 },
+  balanceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6, marginBottom: 18 },
+  balanceValue: { ...typography.balance, color: colors.white },
+  actionRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  primaryBtn: { flex: 1, height: 50, borderRadius: 12, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  primaryBtnText: { color: colors.background, fontFamily: 'Montserrat-SemiBold' },
+  secondaryBtn: { flex: 1, height: 50, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  secondaryBtnText: { color: colors.white, fontFamily: 'Montserrat-SemiBold' },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
   },
-  profileTag: { color: WHITE, fontSize: 13, fontWeight: "600", fontFamily: "Montserrat-Medium" },
-  headerIcon: {
-    width: 44, height: 44,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: 22,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.08)",
-  },
-
-  balanceSection: {
-    alignItems: "center",
-    marginTop: 35,
-  },
-  balanceLabel: { color: MUTED, fontSize: 13, fontWeight: "600", marginBottom: 8, fontFamily: "Montserrat-Medium" },
-  balanceRow: { flexDirection: "row", alignItems: "center" },
-  mainBalance: { color: WHITE, fontSize: 42, fontWeight: "800", letterSpacing: -0.5, fontFamily: "Montserrat-Bold" },
-  eyeBtn: { marginLeft: 12, padding: 2 },
-  growthTag: { color: TEAL, fontSize: 13, fontWeight: "700", marginTop: 8 },
-
-  mainActions: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    gap: 16,
-    marginTop: 35,
-  },
-  btnPrimary: {
-    flex: 1, backgroundColor: WHITE, height: 52, borderRadius: 14,
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-  },
-  btnPrimaryText: { color: DEEP, fontWeight: "800", fontSize: 15, fontFamily: "Montserrat-Bold" },
-  btnSecondary: {
-    flex: 1, backgroundColor: "rgba(255,255,255,0.08)", height: 52, borderRadius: 14,
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.15)",
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-  },
-  btnSecondaryText: { color: WHITE, fontWeight: "700", fontSize: 15, fontFamily: "Montserrat-Medium" },
-
-  sheet: {
-    flex: 1,
-    backgroundColor: SHEET,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    marginTop: -20,
-  },
-  sheetHandle: {
-    width: 36, height: 4,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 2, alignSelf: "center",
-    marginTop: 14, marginBottom: 20,
-  },
-
-  /* Pale Alert Pill */
-  alertPillWrapper: {
-    paddingHorizontal: 20,
+  noticeText: { color: colors.textSecondary, fontFamily: 'Montserrat-Medium', fontSize: 12, flex: 1 },
+  sectionTitle: { ...typography.sectionHeading, color: colors.white, marginBottom: 10 },
+  grid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
+  gridItem: { alignItems: 'center', width: '24%' },
+  gridIcon: { width: 56, height: 56, borderRadius: 16, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  gridLabel: { color: colors.textSecondary, fontFamily: 'Montserrat-Medium', fontSize: 11 },
+  assetChip: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  assetChipText: { color: colors.white, fontFamily: 'Montserrat-Medium', fontSize: 12 },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  linkText: { color: colors.primary, fontFamily: 'Montserrat-SemiBold', fontSize: 12 },
+  txRow: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 10,
   },
-  alertPill: {
-    backgroundColor: PALE,
-    borderRadius: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  alertText: { color: "#333", fontSize: 13, fontWeight: "600", flex: 1, fontFamily: "Montserrat-Medium" },
-
-  /* Action Grid (Solid dark circles like revert image) */
-  gridSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginTop: 24,
-  },
-  actionItem: { alignItems: "center", gap: 10 },
-  actionIconCircle: {
-    width: 66, height: 66,
-    backgroundColor: "rgba(255,255,255,0.04)", // Slight highlight to separate from solid dark
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.07)",
-    borderRadius: 20,
-    alignItems: "center", justifyContent: "center",
-  },
-  actionLabel: { color: MUTED, fontSize: 12, fontWeight: "700", fontFamily: "Montserrat-Medium" },
-
-  /* Pale Refer Banner */
-  referBanner: {
-    backgroundColor: PALE,
-    borderRadius: 28,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignSelf: "center",
-    width: width - 40,
-  },
-  giftImage: { width: 44, height: 44, marginRight: 16 },
-  referText: { color: "#111", fontSize: 16, fontWeight: "600", fontFamily: "Montserrat-Medium" },
-
-  sectionTitle: {
-    color: WHITE, fontSize: 18, fontWeight: "800",
-    marginLeft: 20, marginTop: 32, marginBottom: 14, fontFamily: "Montserrat-Bold" 
-  },
-
-  detailedBanner: {
-    backgroundColor: CARD,
-    marginHorizontal: 20,
-    borderRadius: 24,
-    padding: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1, borderColor: "rgba(167,139,250,0.1)",
-  },
-  bannerContent: { flex: 1 },
-  bannerTitle: { color: WHITE, fontSize: 16, fontWeight: "800", marginBottom: 6, fontFamily: "Montserrat-Bold" },
-  bannerSub: { color: MUTED, fontSize: 13, fontWeight: "500", fontFamily: "Montserrat-Regular" },
-  bannerIconArea: { marginLeft: 12 },
-  iconBg: {
-    width: 48, height: 48,
-    backgroundColor: "rgba(167,139,250,0.15)",
-    borderRadius: 16,
-    alignItems: "center", justifyContent: "center",
-    borderWidth: 1, borderColor: "rgba(167,139,250,0.2)",
-  },
-
+  txLabel: { color: colors.white, fontFamily: 'Montserrat-SemiBold', fontSize: 13 },
+  txTime: { color: colors.textMuted, fontFamily: 'Montserrat-Regular', fontSize: 11, marginTop: 3 },
+  txAmount: { fontFamily: 'Courier', fontSize: 13 },
+  statusChip: { marginTop: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  statusDone: { backgroundColor: '#0F3C31' },
+  statusPending: { backgroundColor: '#523B14' },
+  statusChipText: { color: colors.white, fontFamily: 'Montserrat-Medium', fontSize: 10, textTransform: 'capitalize' },
 });
-
-export default Home;

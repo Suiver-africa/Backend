@@ -10,4 +10,4 @@ import { CryptoModule } from '../crypto/crypto.module';
   controllers: [TransactionsController],
   exports: [TransactionsService],
 })
-export class TransactionsModule { }
+export class TransactionsModule {}

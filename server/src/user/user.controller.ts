@@ -32,7 +32,7 @@ import {
   AuthResponseDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import {JwtRefreshStrategy } from '../auth/jwt-refresh.guard';
+import { JwtRefreshStrategy } from '../auth/jwt-refresh.guard';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -46,7 +46,10 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Send OTP to email' })
   @ApiResponse({ status: 200, type: SendOtpResponseDto })
-  @ApiResponse({ status: 400, description: 'Email already exists or invalid request' })
+  @ApiResponse({
+    status: 400,
+    description: 'Email already exists or invalid request',
+  })
   @HttpCode(HttpStatus.OK)
   @Post('send-otp')
   sendOtp(@Body() dto: SendOtpDto) {
@@ -64,7 +67,10 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Resend OTP for signup verification' })
   @ApiResponse({ status: 200, type: SendOtpResponseDto })
-  @ApiResponse({ status: 400, description: 'No pending signup found or rate limited' })
+  @ApiResponse({
+    status: 400,
+    description: 'No pending signup found or rate limited',
+  })
   @HttpCode(HttpStatus.OK)
   @Post('resend-otp')
   resendOtp(@Body() dto: ResendOtpDto) {
@@ -165,4 +171,3 @@ export class AuthController {
     return this.authService.getCurrentUser(req.user.id);
   }
 }
-    

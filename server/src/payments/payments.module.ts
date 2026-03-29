@@ -12,4 +12,4 @@ import { PaystackService } from './providers/paystack.service';
   controllers: [PaymentsController],
   exports: [PaymentsService, VTPassService, PaystackService],
 })
-export class PaymentsModule { }
+export class PaymentsModule {}

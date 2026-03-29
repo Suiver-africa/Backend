@@ -61,7 +61,9 @@ export class AuthService {
 
   // ─── Two-Step Signup Process ───────────────────────────────────
 
-  async initiateSignup(dto: InitialSignupDto): Promise<InitialSignupResponseDto> {
+  async initiateSignup(
+    dto: InitialSignupDto,
+  ): Promise<InitialSignupResponseDto> {
     // Check if email already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -98,17 +100,23 @@ export class AuthService {
     };
   }
 
-  async completeSignup(dto: CompleteSignupDto): Promise<CompleteSignupResponseDto> {
+  async completeSignup(
+    dto: CompleteSignupDto,
+  ): Promise<CompleteSignupResponseDto> {
     // Get pending signup data
     const pendingSignup = this.pendingSignups.get(dto.email);
     if (!pendingSignup) {
-      throw new BadRequestException('No pending signup found. Please start the signup process again.');
+      throw new BadRequestException(
+        'No pending signup found. Please start the signup process again.',
+      );
     }
 
     // Check if pending signup has expired
     if (Date.now() - pendingSignup.timestamp > this.PENDING_SIGNUP_EXPIRY) {
       this.pendingSignups.delete(dto.email);
-      throw new BadRequestException('Signup session expired. Please start again.');
+      throw new BadRequestException(
+        'Signup session expired. Please start again.',
+      );
     }
 
     // Verify OTP
@@ -133,8 +141,13 @@ export class AuthService {
           firstName: pendingSignup.firstName,
           lastName: pendingSignup.lastName,
           phone: pendingSignup.phone,
-          referredById: pendingSignup.referredByCode ? await this.findReferrerId(pendingSignup.referredByCode) : undefined,
-          tag: await this.generateUniqueTag(pendingSignup.firstName, pendingSignup.lastName),
+          referredById: pendingSignup.referredByCode
+            ? await this.findReferrerId(pendingSignup.referredByCode)
+            : undefined,
+          tag: await this.generateUniqueTag(
+            pendingSignup.firstName,
+            pendingSignup.lastName,
+          ),
           referralCode: await this.generateUniqueReferralCode(),
         },
         select: {
@@ -159,7 +172,9 @@ export class AuthService {
 
       // Process referral reward if user was referred
       if (pendingSignup.referredByCode) {
-        const referrerId = await this.findReferrerId(pendingSignup.referredByCode);
+        const referrerId = await this.findReferrerId(
+          pendingSignup.referredByCode,
+        );
         if (referrerId) {
           await this.processReferralReward(referrerId, user.id);
         }
@@ -224,7 +239,9 @@ export class AuthService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         phone: dto.phone,
-        referredById: dto.referredByCode ? await this.findReferrerId(dto.referredByCode) : undefined,
+        referredById: dto.referredByCode
+          ? await this.findReferrerId(dto.referredByCode)
+          : undefined,
         tag: await this.generateUniqueTag(dto.firstName, dto.lastName),
         referralCode: await this.generateUniqueReferralCode(),
       },
@@ -309,7 +326,9 @@ export class AuthService {
 
   async resetPassword(dto: ResetPasswordDto) {
     // Verify user exists
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (!user) {
       throw new NotFoundException('Email not found');
     }
@@ -366,7 +385,7 @@ export class AuthService {
     return this.generateTokens(user.id, user.email);
   }
 
-  async logout(userId: string) {
+  async logout(_userId: string) {
     return {
       success: true,
       message: 'Logged out successfully',
@@ -423,7 +442,10 @@ export class AuthService {
   // ─── Referral Processing ───────────────────────────────────────
 
   private async processReferralReward(referrerId: string, newUserId: string) {
-    const rewardAmount = this.configService.get('REFERRAL_REWARD_AMOUNT', '1000');
+    const rewardAmount = this.configService.get(
+      'REFERRAL_REWARD_AMOUNT',
+      '1000',
+    );
 
     try {
       // Find referrer's NGN wallet
@@ -476,7 +498,9 @@ export class AuthService {
 
   // ─── Helper Methods ─────────────────────────────────────────────
 
-  private async findReferrerId(referralCode: string): Promise<string | undefined> {
+  private async findReferrerId(
+    referralCode: string,
+  ): Promise<string | undefined> {
     const referrer = await this.prisma.user.findUnique({
       where: { referralCode },
       select: { id: true },
@@ -484,7 +508,10 @@ export class AuthService {
     return referrer?.id;
   }
 
-  private async generateUniqueTag(firstName?: string, lastName?: string): Promise<string> {
+  private async generateUniqueTag(
+    firstName?: string,
+    lastName?: string,
+  ): Promise<string> {
     let baseTag = '';
 
     if (firstName) {

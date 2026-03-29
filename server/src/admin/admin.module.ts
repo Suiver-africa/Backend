@@ -12,10 +12,10 @@ import { PaymentsModule } from '../payments/payments.module';
     PaymentsModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '7d' }
-    })
+      signOptions: { expiresIn: '7d' },
+    }),
   ],
   controllers: [AdminController],
-  providers: [AdminService]
+  providers: [AdminService],
 })
-export class AdminModule { }
+export class AdminModule {}

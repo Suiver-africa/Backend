@@ -7,7 +7,9 @@ export class BeneficiariesService {
   constructor(private prisma: PrismaService) {}
 
   async add(userId: string, dto: CreateBeneficiaryDto) {
-    const recipient = await this.prisma.user.findUnique({ where: { tag: dto.tag } });
+    const recipient = await this.prisma.user.findUnique({
+      where: { tag: dto.tag },
+    });
     if (!recipient) throw new NotFoundException('Recipient not found');
     return this.prisma.beneficiary.create({ data: { userId, ...dto } });
   }

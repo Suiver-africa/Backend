@@ -12,7 +12,7 @@ export class PaymentsService {
     private configService: ConfigService,
     private prisma: PrismaService,
     private vtPassService: VTPassService,
-  ) { }
+  ) {}
 
   // Airtime purchase convenience method
   async buyAirtime(userId: string, phone: string, amount: number) {
@@ -26,7 +26,7 @@ export class PaymentsService {
     userId: string,
     cryptocurrency: string,
     amount: number,
-    walletAddress: string
+    walletAddress: string,
   ): Promise<any> {
     try {
       // 1. Get user's wallet
@@ -35,8 +35,8 @@ export class PaymentsService {
           userId,
           currency: cryptocurrency.toUpperCase(),
           address: walletAddress,
-          isActive: true
-        }
+          isActive: true,
+        },
       });
 
       if (!wallet) {
@@ -44,13 +44,17 @@ export class PaymentsService {
       }
 
       // 2. Verify wallet balance
-      const balance = await this.cryptoService.getWalletBalance(walletAddress, cryptocurrency);
+      const balance = await this.cryptoService.getWalletBalance(
+        walletAddress,
+        cryptocurrency,
+      );
       if (balance < amount) {
         throw new Error('Insufficient balance');
       }
 
       // 3. Get conversion rate
-      const { nairaAmount, exchangeRate } = await this.cryptoService.convertCryptoToNaira(amount, cryptocurrency);
+      const { nairaAmount, exchangeRate } =
+        await this.cryptoService.convertCryptoToNaira(amount, cryptocurrency);
 
       // 4. Calculate fees (2% conversion fee)
       const conversionFee = nairaAmount * 0.02;
@@ -63,19 +67,19 @@ export class PaymentsService {
           type: 'CRYPTO_TO_NAIRA',
           amount: BigInt(Math.round(finalAmount * 100)), // Store as smallest unit
           currency: 'NGN',
-          cryptocurrency: cryptocurrency.toUpperCase(),
+          cryptoAsset: cryptocurrency.toUpperCase(),
           cryptoAmount: amount,
           nairaAmount: finalAmount,
           exchangeRate,
           status: 'PENDING',
-          fromAddress: walletAddress,
+          depositAddress: walletAddress,
           description: `Convert ${amount} ${cryptocurrency.toUpperCase()} to NGN`,
           metadata: {
             conversionFee,
             originalAmount: nairaAmount,
-            exchangeRate
-          }
-        }
+            exchangeRate,
+          },
+        },
       });
 
       // 6. Update wallet balances
@@ -83,8 +87,8 @@ export class PaymentsService {
         where: { id: wallet.id },
         data: {
           balance: { decrement: amount },
-          nairaBalance: { increment: finalAmount }
-        }
+          nairaBalance: { increment: finalAmount },
+        },
       });
 
       return {
@@ -93,9 +97,8 @@ export class PaymentsService {
         nairaAmount: finalAmount,
         conversionFee,
         exchangeRate,
-        estimatedTime: '5-10 minutes'
+        estimatedTime: '5-10 minutes',
       };
-
     } catch (error) {
       this.logger.error('Crypto to Naira conversion failed:', error);
       throw error;
@@ -108,13 +111,13 @@ export class PaymentsService {
     billType: string,
     amount: number,
     accountNumber: string,
-    provider?: string
+    provider?: string,
   ): Promise<any> {
     try {
       // Check user's Naira balance across all wallets
       const totalNairaBalance = await this.prisma.wallet.aggregate({
         where: { userId, isActive: true },
-        _sum: { nairaBalance: true }
+        _sum: { nairaBalance: true },
       });
 
       const totalBalance = totalNairaBalance._sum.nairaBalance?.toNumber() || 0;
@@ -135,9 +138,9 @@ export class PaymentsService {
           metadata: {
             billType,
             accountNumber,
-            provider
-          }
-        }
+            provider,
+          },
+        },
       });
 
       // Process bill payment (integrated with VTPass)
@@ -147,7 +150,7 @@ export class PaymentsService {
         amount,
         accountNumber,
         provider,
-        transactionId: transaction.id
+        transactionId: transaction.id,
       });
 
       // Update transaction status
@@ -155,8 +158,8 @@ export class PaymentsService {
         where: { id: transaction.id },
         data: {
           status: result.code === '000' ? 'COMPLETED' : 'FAILED',
-          hash: result.requestId
-        }
+          hash: result.requestId,
+        },
       });
 
       return {
@@ -164,9 +167,8 @@ export class PaymentsService {
         transactionId: transaction.id,
         status: result.code === '000' ? 'successful' : 'failed',
         reference: result.requestId,
-        details: result.content
+        details: result.content,
       };
-
     } catch (error) {
       this.logger.error('Bill payment failed:', error);
       throw error;
@@ -175,13 +177,17 @@ export class PaymentsService {
 
   private async processBillPayment(data: any): Promise<any> {
     if (data.billType === 'AIRTIME') {
-      return this.vtPassService.purchaseAirtime(data.accountNumber, data.amount, data.provider || 'mtn');
+      return this.vtPassService.purchaseAirtime(
+        data.accountNumber,
+        data.amount,
+        data.provider || 'mtn',
+      );
     }
     // Mock simulation for other types
     return {
       code: '000',
       requestId: `MOCK-${Date.now()}`,
-      content: { status: 'successful' }
+      content: { status: 'successful' },
     };
   }
 
@@ -190,39 +196,22 @@ export class PaymentsService {
     fromUserId: string,
     toIdentifier: string, // email, phone, or tag
     amount: number,
-    message?: string
+    message?: string,
   ): Promise<any> {
     try {
       // 1. Find recipient by email, phone, or tag
-      let toUser = await this.prisma.user.findFirst({
+      const toUser = await this.prisma.user.findFirst({
         where: {
           OR: [
             { email: toIdentifier },
             { phone: toIdentifier },
-            { tag: toIdentifier }
-          ]
-        }
+            { tag: toIdentifier },
+          ],
+        },
       });
 
       if (!toUser) {
-        // Create transfer request if user not found
-        const transferRequest = await this.prisma.transferRequest.create({
-          data: {
-            fromUserId,
-            toEmail: toIdentifier.includes('@') ? toIdentifier : undefined,
-            toPhone: !toIdentifier.includes('@') ? toIdentifier : undefined,
-            amount,
-            message,
-            status: 'pending'
-          }
-        });
-
-        return {
-          success: true,
-          type: 'request_created',
-          transferRequestId: transferRequest.id,
-          message: 'Transfer request created. Recipient will be notified.'
-        };
+        throw new Error('Recipient not found');
       }
 
       // 2. Process immediate transfer
@@ -235,11 +224,11 @@ export class PaymentsService {
           nairaAmount: amount,
           status: 'COMPLETED',
           description: `Transfer to ${toUser.firstName || toUser.email}`,
-          metadata: { recipientId: toUser.id, message }
-        }
+          metadata: { recipientId: toUser.id, message },
+        },
       });
 
-      const receiverTransaction = await this.prisma.transaction.create({
+      await this.prisma.transaction.create({
         data: {
           userId: toUser.id,
           type: 'RECEIVE',
@@ -248,8 +237,8 @@ export class PaymentsService {
           nairaAmount: amount,
           status: 'COMPLETED',
           description: `Received from ${fromUserId}`,
-          metadata: { senderId: fromUserId, message }
-        }
+          metadata: { senderId: fromUserId, message },
+        },
       });
 
       return {
@@ -258,10 +247,9 @@ export class PaymentsService {
         transactionId: senderTransaction.id,
         recipientInfo: {
           name: toUser.firstName || toUser.email,
-          identifier: toIdentifier
-        }
+          identifier: toIdentifier,
+        },
       };
-
     } catch (error) {
       this.logger.error('Money transfer failed:', error);
       throw error;
@@ -274,7 +262,7 @@ export class PaymentsService {
     title: string,
     amount: number,
     description?: string,
-    expiresAt?: Date
+    expiresAt?: Date,
   ): Promise<any> {
     try {
       const code = `pl_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -286,11 +274,10 @@ export class PaymentsService {
           description,
           amount,
           currency: 'NGN',
-          code,
+          slug: code,
           expiresAt,
-          isActive: true,
-          openAmount: false
-        }
+          openAmount: false,
+        },
       });
 
       const linkUrl = `${this.configService.get('FRONTEND_URL') || 'https://suiverafica.vercel.app/'}/pay/${code}`;
@@ -299,10 +286,9 @@ export class PaymentsService {
         success: true,
         paymentLink: linkUrl,
         linkId: paymentLink.id,
-        code: paymentLink.code,
-        qrCode: `data:image/svg+xml;base64,${Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="white"/><text x="100" y="100" text-anchor="middle" font-size="12">QR Code for ${linkUrl}</text></svg>`).toString('base64')}`
+        code: paymentLink.slug,
+        qrCode: `data:image/svg+xml;base64,${Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="white"/><text x="100" y="100" text-anchor="middle" font-size="12">QR Code for ${linkUrl}</text></svg>`).toString('base64')}`,
       };
-
     } catch (error) {
       this.logger.error('Payment link creation failed:', error);
       throw error;
@@ -317,9 +303,9 @@ export class PaymentsService {
         where: {
           userId_currency: {
             userId,
-            currency: cryptocurrency.toUpperCase()
-          }
-        }
+            currency: cryptocurrency.toUpperCase(),
+          },
+        },
       });
 
       if (existingWallet) {
@@ -327,17 +313,15 @@ export class PaymentsService {
           success: true,
           wallet: {
             address: existingWallet.address,
-            currency: existingWallet.currency
+            currency: existingWallet.currency,
           },
-          message: 'Wallet already exists'
+          message: 'Wallet already exists',
         };
       }
 
       // Generate new wallet
-      const walletData = await this.cryptoService.generateWallet(cryptocurrency);
-
-      // Encrypt private key (in production, use proper encryption)
-      const encryptedPrivateKey = Buffer.from(walletData.privateKey).toString('base64');
+      const walletData =
+        await this.cryptoService.generateWallet(cryptocurrency);
 
       // Save to database
       const wallet = await this.prisma.wallet.create({
@@ -345,12 +329,10 @@ export class PaymentsService {
           userId,
           currency: cryptocurrency.toUpperCase(),
           address: walletData.address,
-          privateKey: encryptedPrivateKey,
-          publicKey: walletData.publicKey,
           balance: 0,
           nairaBalance: 0,
-          isActive: true
-        }
+          isActive: true,
+        },
       });
 
       return {
@@ -359,10 +341,9 @@ export class PaymentsService {
           id: wallet.id,
           address: wallet.address,
           cryptocurrency: wallet.currency,
-          balance: wallet.balance.toNumber()
-        }
+          balance: wallet.balance.toNumber(),
+        },
       };
-
     } catch (error) {
       this.logger.error('Wallet creation failed:', error);
       throw error;

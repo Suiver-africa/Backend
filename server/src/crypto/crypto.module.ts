@@ -21,4 +21,4 @@ import { TransactionsModule } from '../transactions/transactions.module';
   controllers: [DepositController],
   exports: [CryptoService, RateService],
 })
-export class CryptoModule { }
+export class CryptoModule {}

@@ -15,7 +15,7 @@ export class TreasuryService {
     private readonly treasuryRepo: TreasuryRepository,
     private readonly feeService: FeeService,
     private readonly notificationService: NotificationService,
-  ) { }
+  ) {}
 
   async processDeposit(depositId: string) {
     const deposit = await this.treasuryRepo.findDepositById(depositId);
@@ -52,7 +52,11 @@ export class TreasuryService {
           debitAccount: 'TREASURY_NGN',
           creditAccount: `USER_${deposit.userId}`,
           amount: payoutAmount,
-          metadata: { txHash: deposit.txHash, method: 'flutterwave', transferId: transfer.id },
+          metadata: {
+            txHash: deposit.txHash,
+            method: 'flutterwave',
+            transferId: transfer.id,
+          },
         });
 
         // update treasury
@@ -62,7 +66,10 @@ export class TreasuryService {
         return { method: 'flutterwave', transferId: transfer.id };
       } catch (err) {
         // realtime transfer failed — fallback to OTC
-        console.warn('Flutterwave transfer failed, fallback to OTC', err.message);
+        console.warn(
+          'Flutterwave transfer failed, fallback to OTC',
+          err.message,
+        );
       }
     }
 
@@ -72,7 +79,10 @@ export class TreasuryService {
         amountCrypto: deposit.amountCrypto,
         chain: deposit.chain,
         payoutCurrency: 'NGN',
-        payoutDetails: { account: deposit.userBankAccount, bankCode: deposit.userBankCode },
+        payoutDetails: {
+          account: deposit.userBankAccount,
+          bankCode: deposit.userBankCode,
+        },
       });
 
       // otcResult must return confirmation of payout settlement
@@ -89,7 +99,10 @@ export class TreasuryService {
     } catch (err) {
       // If OTC fails too: mark failed, create manual review
       await this.treasuryRepo.updateDepositStatus(deposit.id, 'FAILED');
-      await this.notificationService.notifyAdmin('Payout failed for deposit ' + deposit.id, err);
+      await this.notificationService.notifyAdmin(
+        'Payout failed for deposit ' + deposit.id,
+        err,
+      );
       throw err;
     }
   }

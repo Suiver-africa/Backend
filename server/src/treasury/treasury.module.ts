@@ -10,17 +10,17 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { FlutterwaveProvider } from '../payments/providers/flutterwave.provider';
 
 @Module({
-    imports: [PrismaModule],
-    providers: [
-        TreasuryService,
-        FlutterwaveService,
-        FlutterwaveProvider,
-        OtcService,
-        LedgerService,
-        TreasuryRepository,
-        FeeService,
-        NotificationService,
-    ],
-    exports: [TreasuryService],
+  imports: [PrismaModule],
+  providers: [
+    TreasuryService,
+    FlutterwaveService,
+    FlutterwaveProvider,
+    OtcService,
+    LedgerService,
+    TreasuryRepository,
+    FeeService,
+    NotificationService,
+  ],
+  exports: [TreasuryService],
 })
-export class TreasuryModule { }
+export class TreasuryModule {}

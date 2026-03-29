@@ -1,165 +1,124 @@
-import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  StyleSheet,
-  Image,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
+import React, { useMemo, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { colors, typography } from '@/theme/tokens';
+import { depositAssets } from '@/lib/mock-data';
 
-// ── Brand tokens ──
-const DEEP   = "#150823";   // Dark deep background
-const CARD   = "#3B2B4A";   // The semi-transparent dark plum for cards (matches mockup)
-const WHITE  = "#FFFFFF";
-const MUTED  = "#A093AD";   // Muted text
-
-const CRYPTO_LIST = [
-  {
-    id: "btc",
-    name: "Bitcoin",
-    symbol: "BTC",
-    icon: "https://img.icons8.com/color/96/bitcoin--v1.png",
-  },
-  {
-    id: "bnb",
-    name: "Binance Coin",
-    symbol: "BNB",
-    icon: "https://img.icons8.com/color/96/binance-logo.png",
-  },
-  {
-    id: "ltc",
-    name: "Litecoin",
-    symbol: "LTC",
-    icon: "https://img.icons8.com/color/96/litecoin.png",
-  },
-  {
-    id: "sol",
-    name: "Solana",
-    symbol: "SOL",
-    icon: "https://img.icons8.com/color/96/solana.png",
-  },
-  {
-    id: "usdt",
-    name: "Tether (USDT)",
-    symbol: "USDT",
-    icon: "https://img.icons8.com/color/96/tether--v1.png",
-  },
-];
-
-const DepositScreen = () => {
+export default function DepositScreen() {
   const router = useRouter();
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return depositAssets;
+    return depositAssets.filter(
+      (asset) => asset.name.toLowerCase().includes(q) || asset.symbol.toLowerCase().includes(q),
+    );
+  }, [query]);
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
-      <SafeAreaView style={{ flex: 1 }}>
-        {/* Header (Added for navigation so the user can go back) */}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={WHITE} />
+          <TouchableOpacity style={styles.back} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={20} color={colors.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Select Asset</Text>
-          <View style={{ width: 40 }} />
+          <Text style={styles.title}>Deposit</Text>
+          <View style={styles.back} />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {CRYPTO_LIST.map((crypto, index) => (
-            <TouchableOpacity key={crypto.id} style={styles.cryptoCard} activeOpacity={0.8}>
-              <View style={styles.cardLeft}>
-                <Image source={{ uri: crypto.icon }} style={styles.cryptoIcon} />
-                <View style={styles.textContainer}>
-                  <Text style={styles.cryptoName}>{crypto.name}</Text>
-                  <Text style={styles.cryptoSymbol}>{crypto.symbol}</Text>
-                </View>
+        <Text style={styles.subtitle}>Choose the crypto you want to deposit</Text>
+
+        <View style={styles.searchWrap}>
+          <Ionicons name="search" size={18} color={colors.textMuted} />
+          <TextInput
+            placeholder="Search BTC, USDT, SOL..."
+            placeholderTextColor={colors.textMuted}
+            value={query}
+            onChangeText={setQuery}
+            style={styles.searchInput}
+          />
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 50 }}>
+          {filtered.map((asset) => (
+            <TouchableOpacity
+              key={asset.id}
+              style={styles.row}
+              onPress={() =>
+                router.push({
+                  pathname: '/deposit-address',
+                  params: { asset: asset.symbol, networks: asset.networks.join(',') },
+                })
+              }
+            >
+              <View style={styles.icon}>
+                <Text style={styles.iconText}>{asset.symbol.slice(0, 1)}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={MUTED} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{asset.symbol}</Text>
+                <Text style={styles.network}>{asset.networks.join(' / ')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </SafeAreaView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: DEEP },
-  
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  backBtn: {
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: 16, backgroundColor: colors.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  back: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    color: WHITE,
-    fontSize: 18,
-    fontWeight: "700",
-    fontFamily: "Montserrat-Bold",
-  },
-
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-
-  cryptoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: CARD,
-    borderRadius: 24, // Matching the pill shape of the mockup
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.05)",
+    borderColor: colors.border,
   },
-  cardLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+  title: { ...typography.screenTitle, color: colors.white },
+  subtitle: { ...typography.body, color: colors.textSecondary, marginTop: 8, marginBottom: 14 },
+  searchWrap: {
+    height: 46,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 14,
+    gap: 8,
   },
-  cryptoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 16,
-    // Add subtle shadow to the icon to match the 3D pop effect
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+  searchInput: { flex: 1, color: colors.white, fontFamily: 'Montserrat-Regular', fontSize: 14 },
+  row: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  textContainer: {
-    justifyContent: "center",
+  icon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceElevated,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cryptoName: {
-    color: WHITE,
-    fontSize: 16,
-    fontWeight: "700",
-    fontFamily: "Montserrat-Bold",
-    marginBottom: 4,
-  },
-  cryptoSymbol: {
-    color: MUTED,
-    fontSize: 13,
-    fontWeight: "600",
-    fontFamily: "Montserrat-Medium",
-  },
+  iconText: { color: colors.white, fontFamily: 'Poppins-SemiBold', fontSize: 16 },
+  name: { color: colors.white, fontFamily: 'Montserrat-SemiBold', fontSize: 14 },
+  network: { color: colors.textSecondary, fontFamily: 'Montserrat-Regular', fontSize: 12, marginTop: 2 },
 });
-
-export default DepositScreen;

@@ -4,11 +4,17 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { DepositDto, WithdrawDto, SendDto, UpdateDto } from '../user/dto/wallet.dto';
+import { TransactionType } from '@prisma/client';
+import {
+  DepositDto,
+  WithdrawDto,
+  SendDto,
+  UpdateDto,
+} from '../user/dto/wallet.dto';
 
 @Injectable()
 export class WalletService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   // ─── Get Wallet ────────────────────────────────
   async findByUserId(userId: string, currency: string = 'NGN') {
@@ -16,11 +22,13 @@ export class WalletService {
       where: {
         userId_currency: {
           userId,
-          currency: currency
-        }
+          currency: currency,
+        },
       },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
 
@@ -34,8 +42,8 @@ export class WalletService {
       where: {
         userId_currency: {
           userId,
-          currency: currency
-        }
+          currency: currency,
+        },
       },
       select: { balance: true, currency: true },
     });
@@ -50,7 +58,9 @@ export class WalletService {
     const wallets = await this.prisma.wallet.findMany({
       where: { userId },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
 
@@ -58,7 +68,10 @@ export class WalletService {
       throw new NotFoundException('No wallets found for user');
     }
 
-    return wallets.map(wallet => ({ ...wallet, balance: Number(wallet.balance) }));
+    return wallets.map((wallet) => ({
+      ...wallet,
+      balance: Number(wallet.balance),
+    }));
   }
 
   // ─── Deposit ──────────────────────────────────
@@ -70,9 +83,9 @@ export class WalletService {
       where: {
         userId_currency: {
           userId,
-          currency: currency
-        }
-      }
+          currency: currency,
+        },
+      },
     });
 
     if (!wallet) throw new NotFoundException('Wallet not found');
@@ -90,8 +103,8 @@ export class WalletService {
         where: {
           userId_currency: {
             userId,
-            currency: currency
-          }
+            currency: currency,
+          },
         },
         data: updateData,
       });
@@ -101,7 +114,7 @@ export class WalletService {
           userId,
           fromWalletId: wallet.id,
           toWalletId: wallet.id,
-          type: 'DEPOSIT',
+          type: TransactionType.DEPOSIT,
           amount: BigInt(Math.floor(dto.amount)),
           nairaAmount: currency === 'NGN' ? dto.amount : 0,
           currency: wallet.currency,
@@ -124,15 +137,16 @@ export class WalletService {
       where: {
         userId_currency: {
           userId,
-          currency: currency
-        }
-      }
+          currency: currency,
+        },
+      },
     });
 
     if (!wallet) throw new NotFoundException('Wallet not found');
 
     const amount = Number(dto.amount);
-    const balance = currency === 'NGN' ? Number(wallet.nairaBalance) : Number(wallet.balance);
+    const balance =
+      currency === 'NGN' ? Number(wallet.nairaBalance) : Number(wallet.balance);
     if (balance < amount) throw new BadRequestException('Insufficient funds');
 
     const updateData: any = {};
@@ -147,8 +161,8 @@ export class WalletService {
         where: {
           userId_currency: {
             userId,
-            currency: currency
-          }
+            currency: currency,
+          },
         },
         data: updateData,
       });
@@ -158,7 +172,7 @@ export class WalletService {
           userId,
           fromWalletId: wallet.id,
           toWalletId: wallet.id,
-          type: 'WITHDRAW',
+          type: TransactionType.WITHDRAW,
           amount: BigInt(Math.floor(amount)),
           nairaAmount: currency === 'NGN' ? amount : 0,
           currency: dto.currency || wallet.currency,
@@ -185,37 +199,47 @@ export class WalletService {
       where: {
         userId_currency: {
           userId,
-          currency: currency
-        }
-      }
+          currency: currency,
+        },
+      },
     });
 
     const recipientWallet = await this.prisma.wallet.findUnique({
       where: {
         userId_currency: {
           userId: dto.recipientId,
-          currency: currency
-        }
-      }
+          currency: currency,
+        },
+      },
     });
 
     if (!senderWallet) throw new NotFoundException('Sender wallet not found');
-    if (!recipientWallet) throw new NotFoundException('Recipient wallet not found');
+    if (!recipientWallet)
+      throw new NotFoundException('Recipient wallet not found');
 
     const amount = Number(dto.amount);
-    const balance = currency === 'NGN' ? Number(senderWallet.nairaBalance) : Number(senderWallet.balance);
+    const balance =
+      currency === 'NGN'
+        ? Number(senderWallet.nairaBalance)
+        : Number(senderWallet.balance);
     if (balance < amount) throw new BadRequestException('Insufficient funds');
 
-    const senderUpdate = currency === 'NGN' ? { nairaBalance: { decrement: amount } } : { balance: { decrement: amount } };
-    const recipientUpdate = currency === 'NGN' ? { nairaBalance: { increment: amount } } : { balance: { increment: amount } };
+    const senderUpdate =
+      currency === 'NGN'
+        ? { nairaBalance: { decrement: amount } }
+        : { balance: { decrement: amount } };
+    const recipientUpdate =
+      currency === 'NGN'
+        ? { nairaBalance: { increment: amount } }
+        : { balance: { increment: amount } };
 
     const result = await this.prisma.$transaction(async (tx) => {
       const updatedSender = await tx.wallet.update({
         where: {
           userId_currency: {
             userId,
-            currency: currency
-          }
+            currency: currency,
+          },
         },
         data: senderUpdate,
       });
@@ -224,8 +248,8 @@ export class WalletService {
         where: {
           userId_currency: {
             userId: dto.recipientId,
-            currency: currency
-          }
+            currency: currency,
+          },
         },
         data: recipientUpdate,
       });
@@ -235,12 +259,26 @@ export class WalletService {
           userId,
           fromWalletId: senderWallet.id,
           toWalletId: recipientWallet.id,
-          type: 'TRANSFER',
+          type: TransactionType.TRANSFER,
           amount: BigInt(Math.floor(amount)),
           nairaAmount: currency === 'NGN' ? amount : 0,
           currency: dto.currency,
           description: `Transfer to ${dto.recipientId}`,
           status: 'COMPLETED',
+        },
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId: recipientWallet.userId,
+          type: TransactionType.RECEIVE,
+          amount: BigInt(Math.floor(amount)),
+          nairaAmount: currency === 'NGN' ? amount : 0,
+          description: `Received from ${userId}`,
+          currency: recipientWallet.currency,
+          status: 'COMPLETED',
+          fromWalletId: senderWallet.id,
+          toWalletId: recipientWallet.id,
         },
       });
 
@@ -256,8 +294,8 @@ export class WalletService {
       where: {
         userId_currency: {
           userId,
-          currency: currency
-        }
+          currency: currency,
+        },
       },
       data: dto as any, // Cast to any to bypass strict type check for now if partial input causes issues
     });
@@ -275,9 +313,9 @@ export class WalletService {
         where: {
           userId_currency: {
             userId,
-            currency: currency
-          }
-        }
+            currency: currency,
+          },
+        },
       });
       if (!wallet) throw new NotFoundException('Wallet not found');
 
@@ -291,11 +329,11 @@ export class WalletService {
         throw new NotFoundException('No wallets found for user');
       }
 
-      const walletIds = wallets.map(w => w.id);
+      const walletIds = wallets.map((w) => w.id);
       walletCondition = {
         OR: [
           { fromWalletId: { in: walletIds } },
-          { toWalletId: { in: walletIds } }
+          { toWalletId: { in: walletIds } },
         ],
       };
     }
@@ -305,10 +343,14 @@ export class WalletService {
       orderBy: { createdAt: 'desc' },
       include: {
         fromWallet: {
-          include: { user: { select: { firstName: true, lastName: true, tag: true } } },
+          include: {
+            user: { select: { firstName: true, lastName: true, tag: true } },
+          },
         },
         toWallet: {
-          include: { user: { select: { firstName: true, lastName: true, tag: true } } },
+          include: {
+            user: { select: { firstName: true, lastName: true, tag: true } },
+          },
         },
       },
     });
@@ -322,9 +364,9 @@ export class WalletService {
       where: {
         userId_currency: {
           userId,
-          currency: currency
-        }
-      }
+          currency: currency,
+        },
+      },
     });
 
     if (existingWallet) {
@@ -339,7 +381,9 @@ export class WalletService {
         nairaBalance: 0,
       },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
 

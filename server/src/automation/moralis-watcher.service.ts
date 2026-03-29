@@ -17,16 +17,24 @@ export class MoralisWatcherService implements DepositWatcher {
   private apiKey: string;
 
   constructor(private config: ConfigService) {
-    this.apiKey = this.config.get<string>('MORALIS_API_KEY') || process.env.MORALIS_API_KEY || '';
-    if (!this.apiKey) this.logger.warn('Moralis API key not configured; MoralisWatcher disabled');
+    this.apiKey =
+      this.config.get<string>('MORALIS_API_KEY') ||
+      process.env.MORALIS_API_KEY ||
+      '';
+    if (!this.apiKey)
+      this.logger.warn(
+        'Moralis API key not configured; MoralisWatcher disabled',
+      );
   }
 
-  onDeposit(cb: (evt: DepositEvent) => Promise<void>) { this.cb = cb; }
+  onDeposit(cb: (evt: DepositEvent) => Promise<void>) {
+    this.cb = cb;
+  }
 
   async start() {
     if (!this.apiKey) return;
     this.logger.log('Starting Moralis watcher (polling every 20s)');
-    this.interval = setInterval(() => this.poll(), 20000);
+    this.interval = setInterval(() => void this.poll(), 20000);
   }
 
   async stop() {
@@ -37,18 +45,31 @@ export class MoralisWatcherService implements DepositWatcher {
   async poll() {
     try {
       // For demo: scan addresses listed in env or DB; here we use SIMULATED list from env for simplicity
-      const watched = (process.env.WATCH_ADDRESSES || '').split(',').filter(Boolean);
+      const watched = (process.env.WATCH_ADDRESSES || '')
+        .split(',')
+        .filter(Boolean);
       for (const address of watched) {
         const url = `https://deep-index.moralis.io/api/v2/${address}/erc20/transfers`;
-        const res = await axios.get(url, { headers: { 'X-API-Key': this.apiKey } });
-        const items = Array.isArray(res.data) ? res.data : (res.data.result || []);
+        const res = await axios.get(url, {
+          headers: { 'X-API-Key': this.apiKey },
+        });
+        const items = Array.isArray(res.data)
+          ? res.data
+          : res.data.result || [];
         for (const it of items) {
           // simple uniqueness via token_hash + transaction_hash
           const tx = it.transaction_hash || it.transactionHash || it.hash;
           const amount = it.value || it.amount || it.value;
           const symbol = it.symbol || it.token_symbol || 'UNKNOWN';
           const chain = it.chain || 'ETH';
-          const evt = { address, txHash: tx, amount: String(amount || '0'), symbol, confirmations: 1, chain };
+          const evt = {
+            address,
+            txHash: tx,
+            amount: String(amount || '0'),
+            symbol,
+            confirmations: 1,
+            chain,
+          };
           await this.cb(evt);
         }
       }

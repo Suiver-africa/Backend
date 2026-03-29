@@ -18,18 +18,25 @@ export class MailService {
     });
   }
 
- async sendMail({ to, subject, html }: { to: string; subject: string; html: string }) {
-  console.log('Sending email with the following details:');
-  console.log('To:', to);
-  console.log('Subject:', subject);
-  console.log('HTML:', html);
-
-  return this.transporter.sendMail({
-    from: this.configService.get('SMTP_USER'),
+  async sendMail({
     to,
     subject,
     html,
-  });
-}
+  }: {
+    to: string;
+    subject: string;
+    html: string;
+  }) {
+    console.log('Sending email with the following details:');
+    console.log('To:', to);
+    console.log('Subject:', subject);
+    console.log('HTML:', html);
 
+    return this.transporter.sendMail({
+      from: this.configService.get('SMTP_USER'),
+      to,
+      subject,
+      html,
+    });
+  }
 }

@@ -5,6 +5,6 @@ export class VerifyPinDto {
   userId: string;
 
   @IsString()
-  @Length(4,4)
+  @Length(4, 4)
   pin: string;
 }

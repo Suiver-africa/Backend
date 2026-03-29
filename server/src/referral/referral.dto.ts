@@ -10,13 +10,13 @@ export class ValidateReferralCodeDto {
 export class ReferralStatsResponseDto {
   @ApiProperty()
   totalReferrals: number;
-  
+
   @ApiProperty()
   totalRewards: number;
-  
+
   @ApiProperty()
   myReferralCode: string;
-  
+
   @ApiProperty()
   referrals: Array<{
     id: string;

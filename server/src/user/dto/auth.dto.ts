@@ -1,4 +1,11 @@
-import { IsEmail, IsString, MinLength, IsOptional, Length, IsEnum } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  IsOptional,
+  Length,
+  IsEnum,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 // Enum for OTP types

@@ -7,8 +7,8 @@ import { CryptoModule } from '../crypto/crypto.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-    imports: [ConfigModule, TransactionsModule, CryptoModule, PrismaModule],
-    providers: [ListenerService, EvmListener],
-    exports: [ListenerService],
+  imports: [ConfigModule, TransactionsModule, CryptoModule, PrismaModule],
+  providers: [ListenerService, EvmListener],
+  exports: [ListenerService],
 })
-export class ListenerModule { }
+export class ListenerModule {}

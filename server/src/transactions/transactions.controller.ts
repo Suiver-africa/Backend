@@ -1,11 +1,10 @@
 import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateTransactionDto } from '../user/dto/create-transaction.dto';
 
 @Controller('transactions')
 export class TransactionsController {
-  constructor(private tx: TransactionsService) { }
+  constructor(private tx: TransactionsService) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('deposit')
@@ -27,7 +26,7 @@ export class TransactionsController {
       dto.amount,
       dto.accountNumber,
       dto.bankCode,
-      dto.accountName || ''
+      dto.accountName || '',
     );
   }
 }

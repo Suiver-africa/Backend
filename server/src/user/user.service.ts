@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { KycStatus } from '@prisma/client';
 import { CreateUserDto, LoginDto } from './dto/auth.dto';
 import {
   UpdateUserDto,
@@ -19,7 +20,10 @@ import { KycDto } from './dto/kyc.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService, private jwtService: JwtService) { }
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
   // ---------------- AUTH ----------------
   async signup(dto: CreateUserDto) {
@@ -47,7 +51,16 @@ export class UsersService {
       const user = await this.prisma.user.create({ data });
 
       // create wallets for multiple currencies (NGN + common cryptos)
-      const currencies = ['NGN', 'BTC', 'ETH', 'BNB', 'LTC', 'SUI', 'SOL', 'USDT'];
+      const currencies = [
+        'NGN',
+        'BTC',
+        'ETH',
+        'BNB',
+        'LTC',
+        'SUI',
+        'SOL',
+        'USDT',
+      ];
       for (const cur of currencies) {
         await this.prisma.wallet.create({
           data: {
@@ -67,10 +80,10 @@ export class UsersService {
       const token = this.jwtService.sign({ sub: user.id });
       return { user, token };
     } catch (e: any) {
-      if (e.code === 'P2002') throw new BadRequestException('Unique constraint failed');
+      if (e.code === 'P2002')
+        throw new BadRequestException('Unique constraint failed');
       throw e;
     }
-
   }
 
   async login(dto: LoginDto) {
@@ -101,7 +114,7 @@ export class UsersService {
 
     if (!user) throw new NotFoundException('User not found');
 
-    const { password, ...userWithoutPassword } = user;
+    const { password: _password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
@@ -112,14 +125,23 @@ export class UsersService {
   async findByTag(tag: string) {
     return this.prisma.user.findUnique({
       where: { tag },
-      select: { id: true, firstName: true, lastName: true, tag: true, email: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        tag: true,
+        email: true,
+      },
     });
   }
 
   async update(id: string, dto: UpdateUserDto) {
     if (dto.tag) {
-      const existing = await this.prisma.user.findUnique({ where: { tag: dto.tag } });
-      if (existing && existing.id !== id) throw new ConflictException('Tag already exists');
+      const existing = await this.prisma.user.findUnique({
+        where: { tag: dto.tag },
+      });
+      if (existing && existing.id !== id)
+        throw new ConflictException('Tag already exists');
     }
 
     return this.prisma.user.update({
@@ -143,7 +165,7 @@ export class UsersService {
   async updateKyc(id: string, dto: UpdateKycDto) {
     return this.prisma.user.update({
       where: { id },
-      data: { kycStatus: dto.kycStatus },
+      data: { kycStatus: dto.kycStatus as KycStatus },
       select: { id: true, kycStatus: true },
     });
   }
@@ -151,13 +173,12 @@ export class UsersService {
   async updatePin(id: string, dto: UpdatePinDto) {
     const hashedPin = await bcrypt.hash(dto.pin, 10);
 
-    const res = await this.prisma.userSecurity.upsert({
+    await this.prisma.userSecurity.upsert({
       where: { userId: id },
       update: { pinHash: hashedPin },
       create: { userId: id, pinHash: hashedPin },
     });
     return { success: true };
-
   }
 
   async updateBiometric(id: string, dto: UpdateBiometricDto) {
@@ -173,7 +194,9 @@ export class UsersService {
     if (!/^[a-zA-Z0-9._]{4,20}$/.test(clean)) {
       throw new BadRequestException('Invalid tag format');
     }
-    const existing = await this.prisma.user.findUnique({ where: { tag: clean } });
+    const existing = await this.prisma.user.findUnique({
+      where: { tag: clean },
+    });
     if (existing) throw new BadRequestException('Tag taken');
 
     return this.prisma.user.update({
@@ -183,10 +206,10 @@ export class UsersService {
     });
   }
 
-  async submitKyc(userId: string, dto: KycDto) {
+  async submitKyc(userId: string, _dto: KycDto) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { kycStatus: 'PENDING' },
+      data: { kycStatus: KycStatus.PENDING },
       select: { id: true, kycStatus: true },
     });
   }

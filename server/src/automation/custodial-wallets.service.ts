@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class CustodialWalletsService {
   private logger = new Logger(CustodialWalletsService.name);
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async getByAddress(address: string) {
     return this.prisma.cryptoAddress.findUnique({ where: { address } });
@@ -17,7 +17,7 @@ export class CustodialWalletsService {
 
   async createAddress(userId: string, chain: string, address: string) {
     return this.prisma.cryptoAddress.create({
-      data: { userId, chain, address, currency: chain }
+      data: { userId, chain, address, currency: chain },
     });
   }
 

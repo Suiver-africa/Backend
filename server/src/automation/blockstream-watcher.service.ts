@@ -14,26 +14,43 @@ export class BlockstreamWatcherService implements DepositWatcher {
   private interval: NodeJS.Timeout | null = null;
   private base: string;
   constructor(private config: ConfigService) {
-    this.base = this.config.get<string>('BLOCKSTREAM_API') || process.env.BLOCKSTREAM_API || 'https://blockstream.info/api';
+    this.base =
+      this.config.get<string>('BLOCKSTREAM_API') ||
+      process.env.BLOCKSTREAM_API ||
+      'https://blockstream.info/api';
     this.logger.log('Blockstream base: ' + this.base);
   }
-  onDeposit(cb: (evt: DepositEvent) => Promise<void>) { this.cb = cb; }
+  onDeposit(cb: (evt: DepositEvent) => Promise<void>) {
+    this.cb = cb;
+  }
   async start() {
     this.logger.log('Starting Blockstream watcher (polling every 30s)');
-    this.interval = setInterval(() => this.poll(), 30000);
+    this.interval = setInterval(() => void this.poll(), 30000);
   }
-  async stop() { if (this.interval) clearInterval(this.interval); this.logger.log('Stopped Blockstream watcher'); }
+  async stop() {
+    if (this.interval) clearInterval(this.interval);
+    this.logger.log('Stopped Blockstream watcher');
+  }
 
   async poll() {
     try {
-      const watched = (process.env.WATCH_ADDRESSES || '').split(',').filter(Boolean);
+      const watched = (process.env.WATCH_ADDRESSES || '')
+        .split(',')
+        .filter(Boolean);
       for (const address of watched) {
         const url = `${this.base}/address/${address}/txs`;
         const res = await axios.get(url);
         const txs = res.data || [];
         for (const tx of txs) {
           const txHash = tx.txid || tx.hash;
-          const evt: DepositEvent = { address, txHash: String(txHash), amount: '0', symbol: 'BTC', confirmations: tx.status?.confirmations || 0, chain: 'BTC' };
+          const evt: DepositEvent = {
+            address,
+            txHash: String(txHash),
+            amount: '0',
+            symbol: 'BTC',
+            confirmations: tx.status?.confirmations || 0,
+            chain: 'BTC',
+          };
           await this.cb(evt);
         }
       }

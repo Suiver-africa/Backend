@@ -175,7 +175,7 @@ const SignIn = ({ onBack, onSwitchForm }: SignInProps) => {
 
       <TouchableOpacity onPress={() => onSwitchForm("signup")}>
         <Text className="text-center text-gray-600 font-montserrat-regular">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Text className="text-black font-montserrat-semibold">Sign Up</Text>
         </Text>
       </TouchableOpacity>

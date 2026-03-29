@@ -1,18 +1,25 @@
-
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../crypto/crypto.service';
+import { KycStatus } from '@prisma/client';
 
 @Injectable()
 export class TransactionsService {
   constructor(
     private prisma: PrismaService,
-    private cryptoService: CryptoService
-  ) { }
+    private cryptoService: CryptoService,
+  ) {}
 
   private async getWallet(userId: string, currency = 'NGN') {
-    const wallet = await this.prisma.wallet.findFirst({ where: { userId, currency: currency } });
-    if (!wallet) throw new NotFoundException('Wallet not found for currency ' + currency);
+    const wallet = await this.prisma.wallet.findFirst({
+      where: { userId, currency: currency },
+    });
+    if (!wallet)
+      throw new NotFoundException('Wallet not found for currency ' + currency);
     return wallet;
   }
   //payment gateway integration pending
@@ -35,7 +42,7 @@ export class TransactionsService {
   private async userDailyLimit(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    if (user.kycStatus === 'APPROVED') return BigInt(40000000); // 40,000,000 NGN
+    if (user.kycStatus === KycStatus.APPROVED) return BigInt(40000000); // 40,000,000 NGN
     return BigInt(100000); // 100,000 NGN for non-KYC
   }
 
@@ -56,7 +63,7 @@ export class TransactionsService {
     // If I create a wallet with `cryptocurrency='NGN'`, I should probably use `nairaBalance`?
     // Or maybe `balance` is generic?
     // Looking at `processDeposit` I wrote: I updated `nairaBalance` to increment.
-    // Let's stick to updating `balance` for generic deposit if it's not strictly specified, 
+    // Let's stick to updating `balance` for generic deposit if it's not strictly specified,
     // OR BETTER: Update `nairaBalance` if NGN, `balance` if crypto.
 
     const wallet = await this.getWallet(userId, currency);
@@ -95,28 +102,44 @@ export class TransactionsService {
     return updated;
   }
 
-  async send(userId: string, recipientTag: string, amount: number, currency = 'NGN') {
+  async send(
+    userId: string,
+    recipientTag: string,
+    amount: number,
+    currency = 'NGN',
+  ) {
     const senderWallet = await this.getWallet(userId, currency);
 
     // Check Balance (Decimal comparison)
     // wallet.balance is Decimal.
-    const balance = currency === 'NGN' ? senderWallet.nairaBalance : senderWallet.balance;
-    if (Number(balance) < amount) throw new BadRequestException('Insufficient balance');
+    const balance =
+      currency === 'NGN' ? senderWallet.nairaBalance : senderWallet.balance;
+    if (Number(balance) < amount)
+      throw new BadRequestException('Insufficient balance');
 
     // Enforce daily limit for NGN flows
     if (currency === 'NGN') {
       const limit = await this.userDailyLimit(userId);
       const used = await this.getDailyOutgoingNgN(userId);
-      if (used + BigInt(Math.floor(amount)) > limit) throw new BadRequestException('Daily limit exceeded');
+      if (used + BigInt(Math.floor(amount)) > limit)
+        throw new BadRequestException('Daily limit exceeded');
     }
 
-    const recipient = await this.prisma.user.findUnique({ where: { tag: recipientTag } });
+    const recipient = await this.prisma.user.findUnique({
+      where: { tag: recipientTag },
+    });
     if (!recipient) throw new NotFoundException('Recipient not found');
     const recipientWallet = await this.getWallet(recipient.id, currency);
 
     // Update Data
-    const senderUpdate = currency === 'NGN' ? { nairaBalance: { decrement: amount } } : { balance: { decrement: amount } };
-    const recipientUpdate = currency === 'NGN' ? { nairaBalance: { increment: amount } } : { balance: { increment: amount } };
+    const senderUpdate =
+      currency === 'NGN'
+        ? { nairaBalance: { decrement: amount } }
+        : { balance: { decrement: amount } };
+    const recipientUpdate =
+      currency === 'NGN'
+        ? { nairaBalance: { increment: amount } }
+        : { balance: { increment: amount } };
 
     await this.prisma.$transaction([
       this.prisma.wallet.update({
@@ -158,18 +181,27 @@ export class TransactionsService {
     return { success: true };
   }
 
-  async withdraw(userId: string, amount: number, accountNumber: string, bankCode: string, accountName: string, currency = 'NGN') {
+  async withdraw(
+    userId: string,
+    amount: number,
+    accountNumber: string,
+    bankCode: string,
+    accountName: string,
+    currency = 'NGN',
+  ) {
     const wallet = await this.getWallet(userId, currency);
 
     // Check Balance
     const balance = currency === 'NGN' ? wallet.nairaBalance : wallet.balance;
-    if (Number(balance) < amount) throw new BadRequestException('Insufficient balance');
+    if (Number(balance) < amount)
+      throw new BadRequestException('Insufficient balance');
 
     // Enforce daily limit for NGN flows
     if (currency === 'NGN') {
       const limit = await this.userDailyLimit(userId);
       const used = await this.getDailyOutgoingNgN(userId);
-      if (used + BigInt(Math.floor(amount)) > limit) throw new BadRequestException('Daily limit exceeded');
+      if (used + BigInt(Math.floor(amount)) > limit)
+        throw new BadRequestException('Daily limit exceeded');
     }
 
     // Since it's WITHDRAW, we assume we debit now? Or is PENDING status meaning we lock funds?
@@ -181,12 +213,15 @@ export class TransactionsService {
     // That's a bug in original code (calculating newBal but not saving it).
     // I should probably Debit the wallet here.
 
-    const updateData = currency === 'NGN' ? { nairaBalance: { decrement: amount } } : { balance: { decrement: amount } };
+    const updateData =
+      currency === 'NGN'
+        ? { nairaBalance: { decrement: amount } }
+        : { balance: { decrement: amount } };
 
     await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { id: wallet.id },
-        data: updateData
+        data: updateData,
       }),
       this.prisma.transaction.create({
         data: {
@@ -203,10 +238,10 @@ export class TransactionsService {
             accountNumber,
             bankCode,
             accountName,
-            method: 'Bank Transfer'
-          }
+            method: 'Bank Transfer',
+          },
         },
-      })
+      }),
     ]);
 
     return { success: true };
@@ -219,7 +254,7 @@ export class TransactionsService {
     amount: number,
     currency: string,
     txHash: string,
-    fromAddress: string
+    _fromAddress: string,
   ) {
     // 1. Idempotency Check
     const existingDeposit = await this.prisma.cryptoDeposit.findUnique({
@@ -243,7 +278,7 @@ export class TransactionsService {
         address: toAddress,
         // We might want to filter by currency too, but address should be unique enough usually
       },
-      include: { user: true }
+      include: { user: true },
     });
 
     if (!userWallet) {
@@ -252,8 +287,11 @@ export class TransactionsService {
     }
 
     // 3. Get Conversion Rate
-    const { nairaAmount, exchangeRate } = await this.cryptoService.convertCryptoToNaira(amount, currency);
-    console.log(`Processing deposit: ${amount} ${currency} -> ${nairaAmount} NGN for user ${userWallet.userId}`);
+    const { nairaAmount, exchangeRate } =
+      await this.cryptoService.convertCryptoToNaira(amount, currency);
+    console.log(
+      `Processing deposit: ${amount} ${currency} -> ${nairaAmount} NGN for user ${userWallet.userId}`,
+    );
 
     // 4. Double-Entry Accounting
     // Credit User NGN
@@ -262,7 +300,7 @@ export class TransactionsService {
     const SYSTEM_FLOAT_USER_ID = 'SYSTEM_FLOAT'; // Ideally from Config
     // Ensure System Wallet Exists (Simplification for MVP: We might just create it if missing)
     let systemWallet = await this.prisma.wallet.findFirst({
-      where: { userId: SYSTEM_FLOAT_USER_ID, currency: 'NGN' }
+      where: { userId: SYSTEM_FLOAT_USER_ID, currency: 'NGN' },
     });
 
     if (!systemWallet) {
@@ -276,8 +314,8 @@ export class TransactionsService {
           password: 'hashed_secure_password', // Should be properly handled
           firstName: 'System',
           lastName: 'Float',
-          id: SYSTEM_FLOAT_USER_ID
-        }
+          id: SYSTEM_FLOAT_USER_ID,
+        },
       });
 
       systemWallet = await this.prisma.wallet.create({
@@ -285,7 +323,7 @@ export class TransactionsService {
           userId: systemUser.id,
           currency: 'NGN',
           balance: 1000000000, // Pre-funded Float for MVP simulation
-        }
+        },
       });
     }
 
@@ -301,8 +339,8 @@ export class TransactionsService {
           amount: BigInt(Math.floor(amount * 1e8)), // Storing as integer (satoshis/wei-like)
           ngnAmount: BigInt(Math.floor(nairaAmount * 100)), // Storing as kobo
           fee: BigInt(0),
-          status: 'COMPLETED'
-        }
+          status: 'COMPLETED',
+        },
       }),
 
       // Credit User NGN Wallet
@@ -312,16 +350,16 @@ export class TransactionsService {
       this.prisma.wallet.update({
         where: { id: userWallet.id },
         data: {
-          nairaBalance: { increment: nairaAmount }
-        }
+          nairaBalance: { increment: nairaAmount },
+        },
       }),
 
       // Debit System Float
       this.prisma.wallet.update({
         where: { id: systemWallet.id },
         data: {
-          balance: { decrement: nairaAmount } // Assuming System Wallet uses 'balance' for NGN since currency is NGN
-        }
+          balance: { decrement: nairaAmount }, // Assuming System Wallet uses 'balance' for NGN since currency is NGN
+        },
       }),
 
       // Create Transaction Records
@@ -337,9 +375,9 @@ export class TransactionsService {
           description: `Converted ${amount} ${currency} to NGN`,
           hash: txHash,
           toWalletId: userWallet.id,
-          fromWalletId: systemWallet.id // Meaning it came from System Liquidity
-        }
-      })
+          fromWalletId: systemWallet.id, // Meaning it came from System Liquidity
+        },
+      }),
     ]);
 
     console.log(`Deposit Processed Successfully: ${txHash}`);

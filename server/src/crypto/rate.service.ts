@@ -22,7 +22,7 @@ export class RateService {
   private readonly logger = new Logger(RateService.name);
   private cache: RateCache = {};
   private readonly CACHE_DURATION = 60000; // 1 minute cache
-  
+
   // Map crypto symbols to CoinGecko IDs
   private readonly coinGeckoIds: Record<string, string> = {
     BTC: 'bitcoin',
@@ -63,7 +63,7 @@ export class RateService {
    */
   async getRate(currency: string): Promise<number> {
     const upperCurrency = currency.toUpperCase();
-    
+
     // Check cache first
     if (this.isCacheValid(upperCurrency)) {
       this.logger.debug(`Using cached rate for ${upperCurrency}`);
@@ -73,7 +73,7 @@ export class RateService {
     try {
       // Fetch fresh rate from API
       const rate = await this.fetchRateFromAPI(upperCurrency);
-      
+
       // Cache the result
       this.cache[upperCurrency] = {
         rate,
@@ -83,18 +83,23 @@ export class RateService {
       this.logger.debug(`Fetched fresh rate for ${upperCurrency}: ${rate} NGN`);
       return rate;
     } catch (error) {
-      this.logger.error(`Failed to fetch rate for ${upperCurrency}:`, error.message);
-      
+      this.logger.error(
+        `Failed to fetch rate for ${upperCurrency}:`,
+        error.message,
+      );
+
       // Return cached rate if available, even if expired
       if (this.cache[upperCurrency]) {
         this.logger.warn(`Using expired cached rate for ${upperCurrency}`);
         return this.cache[upperCurrency].rate;
       }
-      
+
       // Fall back to static rate
       const fallbackRate = this.fallbackRates[upperCurrency];
       if (fallbackRate) {
-        this.logger.warn(`Using fallback rate for ${upperCurrency}: ${fallbackRate} NGN`);
+        this.logger.warn(
+          `Using fallback rate for ${upperCurrency}: ${fallbackRate} NGN`,
+        );
         return fallbackRate;
       }
 
@@ -111,10 +116,14 @@ export class RateService {
    */
   async getRates(currencies: string[]): Promise<Record<string, number>> {
     const rates: Record<string, number> = {};
-    
+
     // Group currencies by whether they need fresh data or can use cache
-    const uncachedCurrencies = currencies.filter(c => !this.isCacheValid(c.toUpperCase()));
-    const cachedCurrencies = currencies.filter(c => this.isCacheValid(c.toUpperCase()));
+    const uncachedCurrencies = currencies.filter(
+      (c) => !this.isCacheValid(c.toUpperCase()),
+    );
+    const cachedCurrencies = currencies.filter((c) =>
+      this.isCacheValid(c.toUpperCase()),
+    );
 
     // Get cached rates
     for (const currency of cachedCurrencies) {
@@ -125,17 +134,21 @@ export class RateService {
     // Fetch uncached rates
     if (uncachedCurrencies.length > 0) {
       try {
-        const freshRates = await this.fetchMultipleRatesFromAPI(uncachedCurrencies);
+        const freshRates =
+          await this.fetchMultipleRatesFromAPI(uncachedCurrencies);
         Object.assign(rates, freshRates);
       } catch (error) {
         this.logger.error('Failed to fetch multiple rates:', error.message);
-        
+
         // Fall back to individual rate fetching for uncached currencies
         for (const currency of uncachedCurrencies) {
           try {
             rates[currency.toUpperCase()] = await this.getRate(currency);
           } catch (err) {
-            this.logger.error(`Failed to get rate for ${currency}:`, err.message);
+            this.logger.error(
+              `Failed to get rate for ${currency}:`,
+              err.message,
+            );
           }
         }
       }
@@ -178,15 +191,15 @@ export class RateService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.get<CoinGeckoResponse>(url, { 
+        this.httpService.get<CoinGeckoResponse>(url, {
           params,
           timeout: 10000, // 10 second timeout
-        })
+        }),
       );
 
       const data = response.data;
       const coinData = data[coinGeckoId];
-      
+
       if (!coinData) {
         throw new Error(`No data returned for ${currency}`);
       }
@@ -197,7 +210,9 @@ export class RateService {
         // If NGN rate not available, convert USD to NGN (approximate rate: 1 USD = 800 NGN)
         const usdToNgn = this.configService.get<number>('USD_TO_NGN_RATE', 800);
         rate = coinData.usd * usdToNgn;
-        this.logger.warn(`NGN rate not available for ${currency}, using USD conversion`);
+        this.logger.warn(
+          `NGN rate not available for ${currency}, using USD conversion`,
+        );
       }
 
       if (!rate || rate <= 0) {
@@ -216,9 +231,11 @@ export class RateService {
   /**
    * Fetch multiple rates in a single API call
    */
-  private async fetchMultipleRatesFromAPI(currencies: string[]): Promise<Record<string, number>> {
+  private async fetchMultipleRatesFromAPI(
+    currencies: string[],
+  ): Promise<Record<string, number>> {
     const coinGeckoIds = currencies
-      .map(c => this.coinGeckoIds[c.toUpperCase()])
+      .map((c) => this.coinGeckoIds[c.toUpperCase()])
       .filter(Boolean);
 
     if (coinGeckoIds.length === 0) {
@@ -233,10 +250,10 @@ export class RateService {
     };
 
     const response = await firstValueFrom(
-      this.httpService.get<CoinGeckoResponse>(url, { 
+      this.httpService.get<CoinGeckoResponse>(url, {
         params,
         timeout: 15000, // 15 second timeout for multiple currencies
-      })
+      }),
     );
 
     const data = response.data;
@@ -249,10 +266,11 @@ export class RateService {
       const coinData = data[coinGeckoId];
 
       if (coinData) {
-        let rate = coinData.ngn || (coinData.usd ? coinData.usd * usdToNgn : 0);
+        const rate =
+          coinData.ngn || (coinData.usd ? coinData.usd * usdToNgn : 0);
         if (rate > 0) {
           rates[upperCurrency] = rate;
-          
+
           // Cache the result
           this.cache[upperCurrency] = {
             rate,
@@ -271,7 +289,7 @@ export class RateService {
   private isCacheValid(currency: string): boolean {
     const cached = this.cache[currency];
     if (!cached) return false;
-    
+
     const age = Date.now() - cached.timestamp;
     return age < this.CACHE_DURATION;
   }
@@ -287,7 +305,12 @@ export class RateService {
   /**
    * Get cache status for monitoring
    */
-  getCacheStatus(): { currency: string; rate: number; age: number; valid: boolean }[] {
+  getCacheStatus(): {
+    currency: string;
+    rate: number;
+    age: number;
+    valid: boolean;
+  }[] {
     return Object.entries(this.cache).map(([currency, data]) => ({
       currency,
       rate: data.rate,

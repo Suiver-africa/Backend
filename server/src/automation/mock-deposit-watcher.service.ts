@@ -19,17 +19,18 @@ export class MockDepositWatcherService implements DepositWatcher {
   async start() {
     this.logger.log('Starting mock deposit watcher (polling simulation)');
     // simulate periodic fake deposit events (disabled by default)
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     this.intervalRef = setInterval(async () => {
       // NO-OP by default. Developers can enable simulation with env var if they want.
       const simulate = process.env.SIMULATE_DEPOSITS === 'true';
       if (!simulate) return;
       const fake: DepositEvent = {
         address: 'mock_address_1',
-        txHash: '0xdeadbeef' + Math.floor(Math.random()*10000).toString(),
+        txHash: '0xdeadbeef' + Math.floor(Math.random() * 10000).toString(),
         amount: '100000000', // e.g. satoshi/wei
         symbol: 'USDT',
         confirmations: 1,
-        chain: 'ETH'
+        chain: 'ETH',
       };
       this.logger.log('Simulating deposit: ' + JSON.stringify(fake));
       await this.cb(fake);

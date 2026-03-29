@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
@@ -8,7 +12,7 @@ export class ReferralService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
-  ) { }
+  ) {}
 
   // ─── Public Methods ─────────────────────────────────────────────
 
@@ -55,7 +59,10 @@ export class ReferralService {
       throw new NotFoundException('User or referral code not found');
     }
 
-    const baseUrl = this.configService.get('APP_BASE_URL', 'https://yourapp.com');
+    const baseUrl = this.configService.get(
+      'APP_BASE_URL',
+      'https://yourapp.com',
+    );
     const referralLink = `${baseUrl}/signup?ref=${user.referralCode}`;
 
     return {
@@ -79,7 +86,7 @@ export class ReferralService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return referrals.map(referral => ({
+    return referrals.map((referral) => ({
       id: referral.id,
       email: referral.email,
       firstName: referral.firstName ?? undefined,
@@ -110,7 +117,10 @@ export class ReferralService {
       select: { reward: true },
     });
 
-    const totalRewards = referralRewards.reduce((sum, ref) => sum + Number(ref.reward), 0);
+    const totalRewards = referralRewards.reduce(
+      (sum, ref) => sum + Number(ref.reward),
+      0,
+    );
 
     // Get recent referrals with details
     const recentReferrals = await this.prisma.user.findMany({
@@ -130,7 +140,7 @@ export class ReferralService {
       totalReferrals,
       totalRewards,
       myReferralCode: user.referralCode,
-      referrals: recentReferrals.map(ref => ({
+      referrals: recentReferrals.map((ref) => ({
         id: ref.id,
         email: ref.email,
         firstName: ref.firstName ?? undefined,
@@ -144,7 +154,10 @@ export class ReferralService {
   // ─── Referral Processing ───────────────────────────────────────
 
   async processReferralReward(referrerId: string, refereeId: string) {
-    const rewardAmount = this.configService.get('REFERRAL_REWARD_AMOUNT', '1000'); // Default 1000 NGN
+    const rewardAmount = this.configService.get(
+      'REFERRAL_REWARD_AMOUNT',
+      '1000',
+    ); // Default 1000 NGN
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -242,7 +255,7 @@ export class ReferralService {
           totalReferrals: user._count.referrals,
           totalRewards: Number(rewards._sum.reward || 0),
         };
-      })
+      }),
     );
 
     return leaderboard;
@@ -270,15 +283,17 @@ export class ReferralService {
           lastName: true,
         },
       }),
-      referral.inviteeId ? this.prisma.user.findUnique({
-        where: { id: referral.inviteeId },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-        },
-      }) : null,
+      referral.inviteeId
+        ? this.prisma.user.findUnique({
+            where: { id: referral.inviteeId },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          })
+        : null,
     ]);
 
     return {
@@ -304,24 +319,26 @@ export class ReferralService {
     // Get user details for sent referrals
     const sentReferralsWithDetails = await Promise.all(
       sentReferrals.map(async (ref) => {
-        const invitee = ref.inviteeId ? await this.prisma.user.findUnique({
-          where: { id: ref.inviteeId },
-          select: { email: true, firstName: true, lastName: true },
-        }) : null;
+        const invitee = ref.inviteeId
+          ? await this.prisma.user.findUnique({
+              where: { id: ref.inviteeId },
+              select: { email: true, firstName: true, lastName: true },
+            })
+          : null;
 
         return {
           ...ref,
           reward: Number(ref.reward),
           invitee,
         };
-      })
+      }),
     );
 
     // Get user details for received referral
     let receivedReferralWithDetails: {
       id: string;
       createdAt: Date;
-      code: string;
+      code: string | null;
       inviterId: string;
       inviteeId: string | null;
       reward: number;
@@ -366,7 +383,9 @@ export class ReferralService {
     const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 
     if (accountAge < thirtyDays) {
-      throw new BadRequestException('Account must be at least 30 days old to generate new referral code');
+      throw new BadRequestException(
+        'Account must be at least 30 days old to generate new referral code',
+      );
     }
 
     const newReferralCode = await this.generateUniqueReferralCode();

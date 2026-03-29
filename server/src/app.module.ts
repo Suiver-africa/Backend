@@ -40,7 +40,6 @@ import { ListenerModule } from './listener/listener.module';
     AutomationModule,
     AdminModule,
     ListenerModule,
-
   ],
 })
-export class AppModule { }
+export class AppModule {}

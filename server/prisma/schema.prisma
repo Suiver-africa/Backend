@@ -7,207 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id               String          @id @default(uuid())
-  email            String          @unique
-  password         String
-  phone            String?
-  tag              String?         @unique
-  firstName        String?
-  lastName         String?
-  kycStatus        String?         @default("NOT_SUBMITTED")
-  age              Int?
-  referralCode     String?         @unique
-  referredById     String?
-  biometricEnabled Boolean         @default(false)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  socType          String?
-  beneficiaries    Beneficiary[]
-  cryptoAddress    CryptoAddress[]
-  cryptoDeposit    CryptoDeposit[]
-  paymentLinks     PaymentLink[]
-  transactions     Transaction[]   @relation("UserTransactions")
-  referredBy       User?           @relation("Referrals", fields: [referredById], references: [id])
-  referrals        User[]          @relation("Referrals")
-  security         UserSecurity?
-  wallets          Wallet[]
-  sentReferrals    Referral[] @relation("ReferralInviter")
-  receivedReferral Referral[] @relation("ReferralInvitee")
-  transferRequests TransferRequest[]
-
-   isAdmin       Boolean  @default(false)
+enum KycStatus {
+  PENDING
+  BVN_VERIFIED
+  SELFIE_PENDING
+  VERIFIED
+  APPROVED
+  FAILED
+  MANUAL_REVIEW
 }
 
-model Wallet {
-  id            String  @id @default(cuid())
-  userId        String
-  currency      String // BTC, ETH, USDT, USDC, SOL, BNB, SUI, APT, NGN
-  address       String?
-  privateKey    String? // Made optional for non-custodial
-  publicKey     String?
-  balance       Decimal @default(0) @db.Decimal(20, 8)
-  nairaBalance  Decimal @default(0) @db.Decimal(15, 2)
-  isActive      Boolean @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-  sentTransactions     Transaction[] @relation("SentTransactions")
-  receivedTransactions Transaction[] @relation("ReceivedTransactions")
-  
-  @@map("wallets")
-  @@unique([userId, currency])
-}
-
-model CryptoAddress {
-  id        String   @id @default(cuid())
-  userId    String
-  chain     String
-  currency  String
-  address   String   @unique
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-model CryptoDeposit {
-  id        String   @id @default(cuid())
-  userId    String
-  txHash    String   @unique
-  address   String
-  currency  String
-  amount    BigInt
-  ngnAmount BigInt
-  fee       BigInt
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-model Transaction {
-  id           Int             @id @default(autoincrement())
-  userId       String
-  fromWalletId String?  // Changed to String and made optional
-  toWalletId   String?  // Changed to String and made optional
-  type         TransactionType
-  amount       BigInt
-  
-  currency     String
-  description  String?
-  
-  // Crypto-specific fields (from your payment engine requirements)
-  cryptocurrency   String?
-  cryptoAmount     Decimal?          @db.Decimal(20, 8)
-  nairaAmount      Decimal           @db.Decimal(15, 2)
-  exchangeRate     Decimal?          @db.Decimal(15, 8)
-  status           TransactionStatus @default(PENDING)
-  hash             String?           // Blockchain transaction hash
-  fromAddress      String?
-  toAddress        String?
-  metadata         Json?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-
-  // Relations
-  fromWallet   Wallet?          @relation("SentTransactions", fields: [fromWalletId], references: [id])
-  toWallet     Wallet?          @relation("ReceivedTransactions", fields: [toWalletId], references: [id])
-  user         User            @relation("UserTransactions", fields: [userId], references: [id])
-  
-  @@map("transactions")
-}
-
-model Referral {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  inviterId String
-  inviteeId String?
-  reward    BigInt   @default(0)
-  createdAt DateTime @default(now())
-
-  inviter   User     @relation("ReferralInviter", fields: [inviterId], references: [id])
-  invitee   User?    @relation("ReferralInvitee", fields: [inviteeId], references: [id])
-}
-
-model UserSecurity {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  pinHash   String?
-  twoFA     Boolean  @default(false)
-  createdAt DateTime @default(now())
-  biometric String?
-  updatedAt DateTime @default(now()) @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-model Beneficiary {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  tag       String
-  accountNo String?
-  bankName  String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-model Otp {
-  id        String   @id @default(cuid())
-  email     String
-  type      String
-  code      String
-  verified  Boolean  @default(false)
-  attempts  Int      @default(0)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@unique([email, type], name: "email_type")
-  @@index([expiresAt])
-  @@map("otps")
-}
-
-model PaymentLink {
-  id         Int      @id @default(autoincrement())
-  userId     String
-  title       String
-  description String?
-  amount      Decimal  @db.Decimal(15, 2)
-  currency    String   @default("NGN")
-  isActive    Boolean  @default(true)
-  expiresAt   DateTime?
-  openAmount Boolean  @default(false)
-  code       String   @unique
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
-  
-  @@map("payment_links")
-}
-
-model TransferRequest {
-  id          String   @id @default(cuid())
-  fromUserId  String
-  toUserId    String?
-  toEmail     String?
-  toPhone     String?
-  amount      Decimal  @db.Decimal(15, 2)
-  message     String?
-  status      String   @default("pending") // pending, completed, cancelled
-  createdAt   DateTime @default(now())
-  
-  fromUser User @relation(fields: [fromUserId], references: [id])
-  
-  @@map("transfer_requests")
-}
-
-enum TransactionType {
-  DEPOSIT
-  CRYPTO_TO_NAIRA
-  NAIRA_TO_CRYPTO
-  WITHDRAW
-  TRANSFER
-  RECEIVE
-  BILL_PAYMENT
-  REQUEST
-  PAYMENT_LINK
+enum KycProvider {
+  SMILE_ID
+  QORE_ID
 }
 
 enum TransactionStatus {
@@ -216,4 +28,645 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   CANCELLED
+  EXPIRED
+  CONFIRMING
+  AWAITING_DEPOSIT
+  DEPOSIT_DETECTED
+  PROCESSING_PAYOUT
+  PAYOUT_SENT
+}
+
+enum SwapStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum BillStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentLinkStatus {
+  ACTIVE
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+enum Chain {
+  BITCOIN
+  ETHEREUM
+  TRON
+  SOLANA
+  SUI
+  BSC
+  BASE
+  LITECOIN
+}
+
+enum AutoConvertTarget {
+  NGN
+  USDT
+  USDC
+}
+
+enum PaymentSource {
+  NGN_BALANCE
+  CRYPTO_AUTO_CONVERT
+}
+
+enum PaymentLinkPayMethod {
+  CRYPTO
+  CASH
+  BOTH
+}
+
+enum SwapProvider {
+  JUPITER
+  ONE_INCH
+  PARASWAP
+  INTERNAL
+}
+
+enum PayoutProvider {
+  KORAPAY
+  FLUTTERWAVE
+}
+
+enum NotificationType {
+  DEPOSIT_DETECTED
+  PAYOUT_SENT
+  SWAP_COMPLETED
+  AUTO_CONVERT_DONE
+  BILL_SUCCESS
+  BILL_FAILED
+  FLIGHT_CONFIRMED
+  KYC_VERIFIED
+  KYC_FAILED
+  RATE_ALERT
+  TX_EXPIRED
+  PAYMENT_LINK_PAID
+  PROMO
+  SYSTEM
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAW
+  TRANSFER
+  RECEIVE
+  SWAP
+  BILL_PAYMENT
+  CRYPTO_TO_NAIRA
+}
+
+enum BillType {
+  AIRTIME
+  DATA
+  TV_SUBSCRIPTION
+  ELECTRICITY
+}
+
+model User {
+  id                  String          @id @default(uuid())
+  phone               String?         @unique
+  email               String          @unique
+  username            String?         @unique
+  tag                 String?         @unique
+  password            String
+  passwordHash        String?
+  transactionPinHash  String?
+  firstName           String?
+  lastName            String?
+  fullName            String?
+  biometricEnabled    Boolean         @default(false)
+  isAdmin             Boolean         @default(false)
+  userSecurity        UserSecurity?
+  avatarInitials      String?
+  kycStatus           KycStatus       @default(PENDING)
+  kycProvider         KycProvider?
+  kycSmileRef         String?
+  kycQoreRef          String?
+  bvnHash             String?
+  autoConvertGlobal   Boolean         @default(false)
+  autoTransferBank    Boolean         @default(false)
+  defaultBankId       String?
+  dailySellLimitUsd   Decimal         @default(5000) @db.Decimal(18, 2)
+  dailySoldUsd        Decimal         @default(0) @db.Decimal(18, 2)
+  limitResetAt        DateTime?
+  referralCode        String          @unique @default(cuid())
+  referredById        String?
+  isActive            Boolean         @default(true)
+  isDeleted           Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  referredBy          User?           @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals           User[]          @relation("UserReferrals")
+  defaultBank         BankAccount?    @relation("UserDefaultBank", fields: [defaultBankId], references: [id])
+
+  refreshTokens       RefreshToken[]
+  sessions            Session[]
+  otpCodes            OtpCode[]
+  pushTokens          PushToken[]
+  wallets             Wallet[]
+  rateLocks           RateLock[]
+  rateAlerts          RateAlert[]
+  bankAccounts        BankAccount[]   @relation("UserBankAccounts")
+  transactions        Transaction[]
+  transferRequests    TransferRequest[]
+  swaps               Swap[]
+  billPayments        BillPayment[]
+  flightBookings      FlightBooking[]
+  paymentLinks        PaymentLink[]
+  beneficiaries       Beneficiary[]
+  notifications       Notification[]
+  sentReferrals       Referral[]      @relation("ReferralReferrer")
+  receivedReferral    Referral?       @relation("ReferralReferred")
+  auditLogs           AuditLog[]
+  cryptoAddresses     CryptoAddress[]
+  cryptoDeposits      CryptoDeposit[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([referralCode])
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  isRevoked  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  userId     String
+  deviceInfo String?
+  ipAddress  String?
+  lastSeenAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model OtpCode {
+  id         String   @id @default(uuid())
+  userId     String?
+  phone      String
+  codeHash   String
+  purpose    String
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([phone, purpose])
+}
+
+model PushToken {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  platform   String?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Wallet {
+  id             String            @id @default(uuid())
+  userId         String
+  address        String?           @unique
+  currency       String            @default("NGN")
+  privateKey     String?
+  publicKey      String?
+  balance        Decimal           @default(0) @db.Decimal(24, 8)
+  nairaBalance   Decimal           @default(0) @db.Decimal(20, 2)
+  chain          Chain?
+  asset          String?
+  tatumAccountId String?
+  tatumSubId     String?
+  autoConvert    Boolean           @default(false)
+  autoConvertTo  AutoConvertTarget?
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user           User              @relation(fields: [userId], references: [id])
+  transactions   Transaction[]
+  swapsFrom      Swap[]            @relation("SwapFromWallet")
+  swapsTo        Swap[]            @relation("SwapToWallet")
+  transactionsFrom Transaction[]   @relation("TxFromWallet")
+  transactionsTo   Transaction[]   @relation("TxToWallet")
+
+  @@unique([userId, currency])
+  @@unique([userId, chain, asset])
+  @@index([userId])
+  @@index([address])
+}
+
+model RateSnapshot {
+  id        String   @id @default(uuid())
+  asset     String
+  rateNgn   Decimal  @db.Decimal(20, 8)
+  source    String
+  fetchedAt DateTime @default(now())
+
+  @@index([asset, fetchedAt])
+}
+
+model RateLock {
+  id             String    @id @default(uuid())
+  userId         String
+  asset          String
+  rateNgn        Decimal   @db.Decimal(20, 8)
+  cryptoAmount   Decimal   @db.Decimal(24, 8)
+  ngnAmount      Decimal   @db.Decimal(20, 2)
+  feeAmount      Decimal   @db.Decimal(24, 8)
+  lockedAt       DateTime  @default(now())
+  expiresAt      DateTime
+  isUsed         Boolean   @default(false)
+  isExpired      Boolean   @default(false)
+  transactionId  String?   @unique
+
+  user           User      @relation(fields: [userId], references: [id])
+  transaction    Transaction?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model RateAlert {
+  id          String   @id @default(uuid())
+  userId      String
+  asset       String
+  targetRate  Decimal  @db.Decimal(20, 8)
+  direction   String
+  triggered   Boolean  @default(false)
+  triggeredAt DateTime?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model BankAccount {
+  id             String          @id @default(uuid())
+  userId         String
+  bankCode       String
+  bankName       String
+  accountNumber  String
+  accountName    String
+  isDefault      Boolean         @default(false)
+  isDeleted      Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  user           User            @relation("UserBankAccounts", fields: [userId], references: [id])
+  defaultForUser User[]          @relation("UserDefaultBank")
+  transactions   Transaction[]
+  flightBookings FlightBooking[]
+  paymentLinks   PaymentLink[]   @relation("PaymentLinkSettleBank")
+
+  @@unique([userId, accountNumber, bankCode])
+}
+
+model Transaction {
+  id               String        @id @default(uuid())
+  userId           String
+  walletId         String?
+  fromWalletId     String?
+  toWalletId       String?
+  bankAccountId    String?
+  type             TransactionType @default(TRANSFER)
+  amount           BigInt?
+  cryptoAsset      String?
+  cryptoAmount     Decimal?      @db.Decimal(24, 8)
+  nairaAmount      Decimal?      @db.Decimal(20, 2)
+  cryptocurrency   String?
+  code             String?
+  ngnAmount        Decimal?      @db.Decimal(20, 2)
+  currency         String?
+  description      String?
+  hash             String?
+  exchangeRate     Decimal?      @db.Decimal(20, 8)
+  metadata         Json?
+  feeAmount        Decimal?      @db.Decimal(24, 8)
+  feePercent       Decimal?      @db.Decimal(6, 2)
+  rateLockId       String?       @unique
+  lockedRateNgn    Decimal?      @db.Decimal(20, 8)
+  depositAddress   String?
+  txHash           String?
+  confirmations    Int           @default(0)
+  payoutProvider   PayoutProvider?
+  payoutReference  String?
+  payoutSentAt     DateTime?
+  status           String        @default("PENDING")
+  failureReason    String?
+  isAutoConvert    Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user             User          @relation(fields: [userId], references: [id])
+  wallet           Wallet?       @relation(fields: [walletId], references: [id])
+  fromWallet       Wallet?       @relation("TxFromWallet", fields: [fromWalletId], references: [id])
+  toWallet         Wallet?       @relation("TxToWallet", fields: [toWalletId], references: [id])
+  bankAccount      BankAccount?  @relation(fields: [bankAccountId], references: [id])
+  rateLock         RateLock?     @relation(fields: [rateLockId], references: [id])
+  statusHistory    TxStatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([depositAddress])
+  @@index([txHash])
+}
+
+model TxStatusHistory {
+  id             String            @id @default(uuid())
+  transactionId  String
+  status         TransactionStatus
+  note           String?
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+
+  transaction    Transaction       @relation(fields: [transactionId], references: [id])
+}
+
+model Swap {
+  id              String       @id @default(uuid())
+  userId          String
+  fromWalletId    String
+  toWalletId      String
+  fromAsset       String
+  toAsset         String
+  fromAmount      Decimal      @db.Decimal(24, 8)
+  toAmount        Decimal      @db.Decimal(24, 8)
+  expectedAmount  Decimal      @db.Decimal(24, 8)
+  rateAtSwap      Decimal      @db.Decimal(24, 10)
+  fee             Decimal      @db.Decimal(24, 8)
+  feePercent      Decimal      @db.Decimal(6, 2)
+  slippage        Decimal      @db.Decimal(6, 3)
+  priceImpact     Decimal?     @db.Decimal(8, 4)
+  provider        SwapProvider
+  externalTxHash  String?
+  quoteId         String?
+  status          SwapStatus   @default(PENDING)
+  failureReason   String?
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+
+  user            User         @relation(fields: [userId], references: [id])
+  fromWallet      Wallet       @relation("SwapFromWallet", fields: [fromWalletId], references: [id])
+  toWallet        Wallet       @relation("SwapToWallet", fields: [toWalletId], references: [id])
+}
+
+model BillPayment {
+  id                String        @id @default(uuid())
+  userId            String
+  type              BillType
+  provider          String
+  providerPlanId    String?
+  providerPlanName  String?
+  phoneNumber       String?
+  smartCardNumber   String?
+  subscriberName    String?
+  amount            Decimal       @db.Decimal(20, 2)
+  paidWith          PaymentSource
+  vtpassRef         String?
+  vtpassOrderId     String?
+  status            BillStatus    @default(PENDING)
+  failureReason     String?
+  completedAt       DateTime?
+  createdAt         DateTime      @default(now())
+
+  user              User          @relation(fields: [userId], references: [id])
+}
+
+model FlightBooking {
+  id               String        @id @default(uuid())
+  userId           String
+  bankAccountId    String?
+  origin           String
+  destination      String
+  departureDate    DateTime
+  returnDate       DateTime?
+  tripType         String
+  cabin            String
+  adultCount       Int
+  childCount       Int
+  infantCount      Int
+  passengers       Json
+  baseFareNgn      Decimal       @db.Decimal(20, 2)
+  taxesNgn         Decimal       @db.Decimal(20, 2)
+  suiverFeeNgn     Decimal       @db.Decimal(20, 2)
+  totalAmountNgn   Decimal       @db.Decimal(20, 2)
+  paidWith         PaymentSource
+  pnr              String?
+  eTicketUrl       String?
+  providerRef      String?
+  provider         String        @default("AMADEUS")
+  status           BookingStatus @default(PENDING)
+  failureReason    String?
+  confirmedAt      DateTime?
+  createdAt        DateTime      @default(now())
+
+  user             User          @relation(fields: [userId], references: [id])
+  bankAccount      BankAccount?  @relation(fields: [bankAccountId], references: [id])
+}
+
+model PaymentLink {
+  id                String               @id @default(uuid())
+  userId            String
+  slug              String               @unique
+  code              String?              @unique
+  title             String
+  description       String?
+  amount            Decimal              @db.Decimal(20, 2)
+  currency          String               @default("NGN")
+  invoiceNumber     String?
+  dueDate           DateTime?
+  acceptedMethods   PaymentLinkPayMethod @default(BOTH)
+  acceptedAssets    String[]
+  depositWalletId   String?
+  bankInstructions  String?
+  status            PaymentLinkStatus    @default(ACTIVE)
+  expiresAt         DateTime?
+  openAmount        Boolean              @default(false)
+  autoConvertToNgn  Boolean              @default(false)
+  autoTransferBank  Boolean              @default(false)
+  settleBankId      String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  user              User                 @relation(fields: [userId], references: [id])
+  settleBank        BankAccount?         @relation("PaymentLinkSettleBank", fields: [settleBankId], references: [id])
+  payments          PaymentLinkPayment[]
+}
+
+model PaymentLinkPayment {
+  id           String    @id @default(uuid())
+  linkId       String
+  payerName    String?
+  payerEmail   String?
+  payerNote    String?
+  method       String
+  cryptoAsset  String?
+  cryptoAmount Decimal?  @db.Decimal(24, 8)
+  ngnAmount    Decimal   @db.Decimal(20, 2)
+  txHash       String?
+  status       String
+  paidAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  link         PaymentLink @relation(fields: [linkId], references: [id])
+}
+
+model Beneficiary {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  tag       String
+  accountNo String?
+  bankName  String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String
+  type       NotificationType
+  title      String
+  body       String
+  data       Json?
+  isRead     Boolean          @default(false)
+  sentAt     DateTime         @default(now())
+
+  user       User             @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([userId, sentAt])
+}
+
+model Referral {
+  id              String    @id @default(uuid())
+  inviterId       String
+  inviteeId       String    @unique
+  code            String?   @unique
+  reward          BigInt?
+  rewardType      String?
+  rewardAmount    Decimal?  @default(500) @db.Decimal(20, 2)
+  rewardPaid      Boolean   @default(false)
+  rewardPaidAt    DateTime?
+  conditionMet    Boolean   @default(false)
+  conditionMetAt  DateTime?
+  createdAt       DateTime  @default(now())
+
+  inviter         User      @relation("ReferralReferrer", fields: [inviterId], references: [id])
+  invitee         User      @relation("ReferralReferred", fields: [inviteeId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entity     String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model UserSecurity {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  pinHash    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  type      String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([email, type])
+}
+
+model CryptoDeposit {
+  id        String   @id @default(uuid())
+  userId    String
+  txHash    String   @unique
+  address   String
+  currency  String
+  amount    BigInt
+  ngnAmount BigInt
+  fee       BigInt
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model CryptoAddress {
+  id        String   @id @default(uuid())
+  userId    String
+  currency  String
+  chain     String
+  address   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model SystemConfig {
+  key        String   @id
+  value      String
+  updatedAt  DateTime @updatedAt
+}
+
+model TransferRequest {
+  id                String    @id @default(uuid())
+  userId            String
+  amount            Decimal   @db.Decimal(20, 2)
+  currency          String
+  status            String    @default("PENDING")
+  createdAt         DateTime  @default(now())
+  user              User      @relation(fields: [userId], references: [id])
 }

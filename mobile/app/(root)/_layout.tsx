@@ -1,18 +1,19 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
-import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/theme/tokens';
 
-type TabName = "home" | "card" | "activity" | "settings";
+type TabName = 'home' | 'card' | 'activity' | 'settings';
 
-const TAB_ITEMS: { name: TabName; label: string; icon: string; activeIcon: string }[] = [
-  { name: "home",     label: "Home",     icon: "home-outline",       activeIcon: "home" },
-  { name: "card",     label: "Card",     icon: "card-outline",       activeIcon: "card" },
-  { name: "activity", label: "Activity", icon: "stats-chart-outline", activeIcon: "stats-chart" },
-  { name: "settings", label: "Settings", icon: "settings-outline",   activeIcon: "settings" },
+const TAB_ITEMS: { name: TabName; label: string; icon: keyof typeof Ionicons.glyphMap; activeIcon: keyof typeof Ionicons.glyphMap }[] = [
+  { name: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
+  { name: 'card', label: 'Rates', icon: 'swap-horizontal-outline', activeIcon: 'swap-horizontal' },
+  { name: 'activity', label: 'Activity', icon: 'bar-chart-outline', activeIcon: 'bar-chart' },
+  { name: 'settings', label: 'Settings', icon: 'settings-outline', activeIcon: 'settings' },
 ];
 
-const Layout = () => {
+export default function RootTabs() {
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
@@ -25,21 +26,10 @@ const Layout = () => {
                 key={tab.name}
                 style={styles.tabItem}
                 onPress={() => navigation.navigate(tab.name)}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
-                {/* Active Indicator Bar at the Top */}
-                {focused && <View style={styles.activeIndicator} />}
-                
-                <View style={styles.tabIconWrap}>
-                  <Ionicons
-                    name={(focused ? tab.activeIcon : tab.icon) as any}
-                    size={22}
-                    color={focused ? "#FFFFFF" : "#B0A2C3"} 
-                  />
-                </View>
-                <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
-                  {tab.label}
-                </Text>
+                <Ionicons name={focused ? tab.activeIcon : tab.icon} size={20} color={focused ? colors.white : colors.textMuted} />
+                <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -52,51 +42,31 @@ const Layout = () => {
       <Tabs.Screen name="settings" />
     </Tabs>
   );
-};
+}
 
 const styles = StyleSheet.create({
   tabBar: {
-    flexDirection: "row",
-    backgroundColor: "#11051F", // Matches Home Black
-    paddingTop: 0,
-    paddingBottom: Platform.OS === "ios" ? 30 : 16,
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.05)", // Very subtle or no line
-    height: Platform.OS === "ios" ? 90 : 75,
+    borderTopColor: colors.border,
+    height: Platform.OS === 'ios' ? 88 : 76,
+    paddingBottom: Platform.OS === 'ios' ? 26 : 14,
+    paddingTop: 10,
+    paddingHorizontal: 10,
   },
   tabItem: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: 0,
-    width: '40%',
-    height: 3,
-    backgroundColor: "#A78BFA", // Lavender accent
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
-  },
-  tabIconWrap: {
-    width: 40,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   tabLabel: {
-    fontSize: 10,
-    color: "#B0A2C3", // Muted for inactive
-    fontFamily: "Montserrat-Medium",
-    fontWeight: "600",
+    color: colors.textMuted,
+    fontSize: 12,
+    fontFamily: 'Montserrat-Medium',
   },
   tabLabelActive: {
-    color: "#FFFFFF", // White for active
-    fontWeight: "700",
+    color: colors.white,
   },
 });
-
-export default Layout;

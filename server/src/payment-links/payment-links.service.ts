@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class PaymentLinksService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(userId: string, dto: CreatePaymentLinkDto) {
     // Check if user has any wallets (or specify currency if needed)
@@ -26,7 +26,7 @@ export class PaymentLinksService {
         title: dto.title || 'Payment Link',
         amount: dto.amount ? dto.amount : 0,
         openAmount: !!dto.openAmount,
-        code,
+        slug: code,
       },
     });
 
@@ -39,7 +39,7 @@ export class PaymentLinksService {
 
   async findByCode(code: string) {
     const paymentLink = await this.prisma.paymentLink.findUnique({
-      where: { code },
+      where: { slug: code },
       include: {
         user: {
           select: {
@@ -69,20 +69,22 @@ export class PaymentLinksService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return paymentLinks.map(link => ({
+    return paymentLinks.map((link) => ({
       ...link,
       amount: link.amount ? Number(link.amount) : null,
     }));
   }
 
-  async delete(userId: string, id: number) {
+  async delete(userId: string, id: string) {
     // Ensure the payment link belongs to the user
     const paymentLink = await this.prisma.paymentLink.findFirst({
       where: { id, userId },
     });
 
     if (!paymentLink) {
-      throw new NotFoundException('Payment link not found or does not belong to user');
+      throw new NotFoundException(
+        'Payment link not found or does not belong to user',
+      );
     }
 
     await this.prisma.paymentLink.delete({
@@ -92,14 +94,16 @@ export class PaymentLinksService {
     return { success: true, message: 'Payment link deleted successfully' };
   }
 
-  async update(userId: string, id: number, dto: Partial<CreatePaymentLinkDto>) {
+  async update(userId: string, id: string, dto: Partial<CreatePaymentLinkDto>) {
     // Ensure the payment link belongs to the user
     const existingLink = await this.prisma.paymentLink.findFirst({
       where: { id, userId },
     });
 
     if (!existingLink) {
-      throw new NotFoundException('Payment link not found or does not belong to user');
+      throw new NotFoundException(
+        'Payment link not found or does not belong to user',
+      );
     }
 
     const updatedLink = await this.prisma.paymentLink.update({
@@ -117,7 +121,11 @@ export class PaymentLinksService {
   }
 
   // Alternative: If you want to check for a specific currency wallet
-  async createWithCurrency(userId: string, dto: CreatePaymentLinkDto, currency: string = 'NGN') {
+  async createWithCurrency(
+    userId: string,
+    dto: CreatePaymentLinkDto,
+    currency: string = 'NGN',
+  ) {
     // Check if user has a wallet for the specific currency
     const wallet = await this.prisma.wallet.findUnique({
       where: {
@@ -142,7 +150,7 @@ export class PaymentLinksService {
         amount: dto.amount ? dto.amount : 0,
         openAmount: !!dto.openAmount,
         title: dto.title || 'Payment Link',
-        code,
+        slug: code,
       },
     });
 
